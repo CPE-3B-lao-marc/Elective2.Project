@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Commute Planner</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>🚗 Smart Commute Planner</h1>
+        <div id="user-info"></div>
+    </header>
+
+    <main>
+        <div id="login-section">
+            <h2>Login</h2>
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="login()">Login</button>
+        </div>
+
+        <div id="planner-section" style="display: none;">
+            <div class="input-group">
+                <h3>📍 Location Details</h3>
+                <input type="text" id="origin" placeholder="Starting point">
+                <input type="text" id="destination" placeholder="Destination">
+                <button onclick="planRoute()">Find Best Route</button>
+            </div>
+
+            <div id="routes-container">
+                <div id="map"></div>
+                <div id="route-comparison"></div>
+                <div id="weather-warning"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
