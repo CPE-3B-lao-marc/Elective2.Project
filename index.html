@@ -2,41 +2,179 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Commute Planner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Smart Commute Planner | Multi-Transport Route Finder</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Leaflet CSS - Critical for map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Quick fix - ensure map container has height */
+        #map { 
+            height: 450px; 
+            width: 100%; 
+            background: #e2e8f0;
+            min-height: 400px;
+        }
+        .leaflet-container {
+            background: #e2e8f0;
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>🚗 Smart Commute Planner</h1>
-        <div id="user-info"></div>
-    </header>
-
-    <main>
-        <div id="login-section">
-            <h2>Login</h2>
-            <input type="text" id="username" placeholder="Username">
-            <input type="password" id="password" placeholder="Password">
-            <button onclick="login()">Login</button>
-        </div>
-
-        <div id="planner-section" style="display: none;">
-            <div class="input-group">
-                <h3>📍 Location Details</h3>
-                <input type="text" id="origin" placeholder="Starting point">
-                <input type="text" id="destination" placeholder="Destination">
-                <button onclick="planRoute()">Find Best Route</button>
+    <!-- Header Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-route"></i>
+                <span>Smart<span class="highlight">Commute</span></span>
             </div>
-
-            <div id="routes-container">
-                <div id="map"></div>
-                <div id="route-comparison"></div>
-                <div id="weather-warning"></div>
+            <div class="nav-links" id="user-nav">
+                <button class="btn-login" onclick="showLoginModal()">
+                    <i class="fas fa-user-circle"></i> Login
+                </button>
             </div>
         </div>
-    </main>
+    </nav>
 
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Find the best way to get there</h1>
+            <p>Compare driving, transit, walking, and cycling routes with real-time weather impact</p>
+        </div>
+    </section>
+
+    <!-- Main Search Container -->
+    <div class="search-container">
+        <div class="search-card">
+            <div class="search-header">
+                <div class="mode-tabs">
+                    <button class="mode-tab active" data-mode="drive">
+                        <i class="fas fa-car"></i> Drive
+                    </button>
+                    <button class="mode-tab" data-mode="transit">
+                        <i class="fas fa-bus"></i> Transit
+                    </button>
+                    <button class="mode-tab" data-mode="walk">
+                        <i class="fas fa-walking"></i> Walk
+                    </button>
+                    <button class="mode-tab" data-mode="bike">
+                        <i class="fas fa-bicycle"></i> Bike
+                    </button>
+                </div>
+                <div class="saved-locations">
+                    <button class="btn-saved" onclick="showSavedLocations()">
+                        <i class="fas fa-bookmark"></i> Saved Places
+                    </button>
+                </div>
+            </div>
+            
+            <div class="search-inputs">
+                <div class="input-group">
+                    <div class="input-icon">
+                        <i class="fas fa-circle-dot"></i>
+                    </div>
+                    <input type="text" id="origin" placeholder="From: Enter location or address" autocomplete="off">
+                    <button class="btn-locate" onclick="useCurrentLocation()">
+                        <i class="fas fa-location-dot"></i>
+                    </button>
+                </div>
+                
+                <div class="swap-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                
+                <div class="input-group">
+                    <div class="input-icon">
+                        <i class="fas fa-location-dot"></i>
+                    </div>
+                    <input type="text" id="destination" placeholder="To: Enter destination" autocomplete="off">
+                </div>
+                
+                <button class="btn-search" onclick="planRoute()">
+                    <i class="fas fa-magnifying-glass"></i> Find Routes
+                </button>
+            </div>
+            
+            <div class="recent-searches" id="recent-searches">
+                <span><i class="fas fa-clock"></i> Recent:</span>
+                <div id="recent-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Container -->
+    <div id="results-container" style="display: none;">
+        <!-- Map Section -->
+        <div class="map-section">
+            <div id="map"></div>
+        </div>
+        
+        <!-- Route Options -->
+        <div class="routes-section">
+            <div class="routes-header">
+                <h3><i class="fas fa-route"></i> Available Routes</h3>
+                <div class="weather-badge" id="weather-badge"></div>
+            </div>
+            <div id="route-list" class="route-list"></div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-lock"></i> Sign In</h3>
+                <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="login-username" placeholder="Username" class="modal-input">
+                <input type="password" id="login-password" placeholder="Password" class="modal-input">
+                <button class="btn-primary" onclick="login()">Sign In</button>
+                <p class="modal-note">Demo: Use any username/password</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Location Modal -->
+    <div id="save-modal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3><i class="fas fa-save"></i> Save Location</h3>
+                <button class="modal-close" onclick="closeSaveModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="save-name" placeholder="Name this location" class="modal-input">
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeSaveModal()">Cancel</button>
+                    <button class="btn-primary" onclick="saveCurrentLocation()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="script.js"></script>
+    
+    <script>
+        // Emergency test - check if map loads
+        console.log('Page loaded, checking map element...');
+        setTimeout(() => {
+            const mapElement = document.getElementById('map');
+            if (mapElement) {
+                console.log('Map element found, height:', mapElement.clientHeight);
+                if (mapElement.clientHeight === 0) {
+                    console.warn('Map height is 0! Check CSS');
+                    mapElement.style.height = '450px';
+                }
+            } else {
+                console.error('Map element not found!');
+            }
+        }, 500);
+    </script>
 </body>
 </html>
