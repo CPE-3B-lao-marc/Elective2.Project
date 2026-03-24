@@ -92,14 +92,102 @@ function initMap() {
     console.log('Map initialized successfully!');
 }
 
+// Calculate distance between two coordinates (Haversine formula)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// Get realistic route based on mode
+async function getRealisticRoute(originCoords, destCoords, mode) {
+    const straightDistance = calculateDistance(
+        originCoords.lat, originCoords.lon,
+        destCoords.lat, destCoords.lon
+    );
+    
+    // Road distance factor (real roads are longer than straight line)
+    let roadFactor = 1.3;
+    let speed = 0;
+    let transferTime = 0;
+    
+    switch(mode) {
+        case 'drive':
+            roadFactor = 1.25; // Roads are ~25% longer than straight line
+            speed = 35; // City driving average speed in Manila (km/h)
+            break;
+        case 'transit':
+            roadFactor = 1.4; // Transit routes may have detours and longer paths
+            speed = 22; // Bus/Jeepney average speed with stops (km/h)
+            transferTime = 15; // Add 15 mins for waiting and transfers
+            break;
+        case 'walk':
+            roadFactor = 1.1; // Walking can take more direct paths
+            speed = 5; // Average walking speed (km/h)
+            break;
+        case 'bike':
+            roadFactor = 1.2; // Cycling paths are fairly direct
+            speed = 15; // Average cycling speed (km/h)
+            break;
+        default:
+            roadFactor = 1.3;
+            speed = 30;
+    }
+    
+    const actualDistance = straightDistance * roadFactor;
+    let duration = Math.round((actualDistance / speed) * 60);
+    duration += transferTime;
+    
+    // Add traffic delay for driving during peak hours
+    if (mode === 'drive') {
+        const hour = new Date().getHours();
+        if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) {
+            duration = Math.round(duration * 1.5); // 50% more during rush hour
+        } else if ((hour >= 10 && hour <= 16) || (hour >= 20 && hour <= 22)) {
+            duration = Math.round(duration * 1.2); // 20% more during moderate traffic
+        }
+    }
+    
+    // Create a realistic GeoJSON route with a curved path between points
+    const midLat = (originCoords.lat + destCoords.lat) / 2;
+    const midLon = (originCoords.lon + destCoords.lon) / 2;
+    
+    // Add slight curve to make route look realistic
+    const curveOffset = Math.min(0.05, straightDistance / 200);
+    const curveLat = midLat + (Math.random() - 0.5) * curveOffset;
+    const curveLon = midLon + (Math.random() - 0.5) * curveOffset;
+    
+    const routeGeometry = {
+        type: "LineString",
+        coordinates: [
+            [originCoords.lon, originCoords.lat],
+            [curveLon, curveLat],
+            [destCoords.lon, destCoords.lat]
+        ]
+    };
+    
+    return {
+        routes: [{
+            distance: actualDistance * 1000, // in meters
+            duration: duration * 60, // in seconds
+            geometry: routeGeometry
+        }]
+    };
+}
+
 // Simulate traffic data based on time of day
 function getTrafficData(route, timeOfDay) {
     // Traffic congestion simulation based on time
     const trafficLevels = {
-        morning: { light: 0.2, moderate: 0.5, heavy: 0.3 },
-        midday: { light: 0.5, moderate: 0.3, heavy: 0.2 },
-        evening: { light: 0.1, moderate: 0.4, heavy: 0.5 },
-        night: { light: 0.8, moderate: 0.15, heavy: 0.05 }
+        morning: { light: 0.1, moderate: 0.4, heavy: 0.5 }, // 7-9 AM rush hour
+        midday: { light: 0.5, moderate: 0.3, heavy: 0.2 },   // 10 AM-4 PM
+        evening: { light: 0.05, moderate: 0.35, heavy: 0.6 }, // 5-8 PM rush hour
+        night: { light: 0.8, moderate: 0.15, heavy: 0.05 }    // 9 PM-6 AM
     };
     
     const now = new Date();
@@ -140,7 +228,7 @@ function getTrafficData(route, timeOfDay) {
             break;
     }
     
-    const originalDuration = route.duration;
+    const originalDuration = route.duration / 60; // convert to minutes
     const adjustedDuration = Math.round(originalDuration * delayMultiplier);
     
     return {
@@ -305,25 +393,6 @@ async function geocodeLocation(address) {
     }
 }
 
-// Get route based on mode
-async function getRoute(originCoords, destCoords, mode) {
-    const modeMap = {
-        drive: 'driving',
-        transit: 'driving',
-        walk: 'walking',
-        bike: 'cycling'
-    };
-    
-    const profile = modeMap[mode] || 'driving';
-    
-    const response = await axios.get(
-        `https://router.project-osrm.org/route/v1/${profile}/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}`,
-        { params: { overview: 'full', geometries: 'geojson' } }
-    );
-    
-    return response.data;
-}
-
 // Get weather with forecast
 async function getWeather(lat, lon) {
     const response = await axios.get('https://api.open-meteo.com/v1/forecast', {
@@ -444,13 +513,13 @@ async function planRoute() {
         // Get weather for destination
         const weather = await getWeather(destCoords.lat, destCoords.lon);
         
-        // Get routes for all modes
+        // Get routes for all modes with realistic calculations
         const modes = ['drive', 'transit', 'walk', 'bike'];
         const routes = [];
         
         for (const mode of modes) {
             try {
-                const route = await getRoute(originCoords, destCoords, mode);
+                const route = await getRealisticRoute(originCoords, destCoords, mode);
                 if (route.routes && route.routes.length > 0) {
                     const distance = (route.routes[0].distance / 1000).toFixed(1);
                     const duration = Math.round(route.routes[0].duration / 60);
