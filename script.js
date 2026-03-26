@@ -10,6 +10,13 @@ let selectedRouteLayer = null;
 let routeControl = null;
 let trafficLayer = null;
 
+// Priority settings
+let priorities = {
+    jeepney: null,
+    bus: null,
+    train: null
+};
+
 // Load saved data from localStorage
 function loadSavedData() {
     const saved = localStorage.getItem('savedLocations');
@@ -54,9 +61,8 @@ function addToRecent(origin, destination) {
     updateRecentSearches();
 }
 
-// Initialize map with OpenStreetMap (more reliable)
+// Initialize map with OpenStreetMap
 function initMap() {
-    // Check if map already exists
     if (map) {
         map.invalidateSize();
         console.log('Map already exists, resizing...');
@@ -70,12 +76,10 @@ function initMap() {
     }
     
     console.log('Initializing map...');
-    const defaultLocation = [14.5995, 120.9842]; // Manila coordinates
+    const defaultLocation = [14.5995, 120.9842];
     
-    // Create map instance
     map = L.map('map').setView(defaultLocation, 12);
     
-    // Use OpenStreetMap tiles (no API key needed, very reliable)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
@@ -83,18 +87,15 @@ function initMap() {
         errorTileUrl: 'https://via.placeholder.com/256?text=Map+Tile+Error'
     }).addTo(map);
     
-    // Add scale control
     L.control.scale({ metric: true, imperial: false }).addTo(map);
-    
-    // Add zoom control
     L.control.zoom({ position: 'topright' }).addTo(map);
     
     console.log('Map initialized successfully!');
 }
 
-// Calculate distance between two coordinates (Haversine formula)
+// Calculate distance between two coordinates
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -111,28 +112,27 @@ async function getRealisticRoute(originCoords, destCoords, mode) {
         destCoords.lat, destCoords.lon
     );
     
-    // Road distance factor (real roads are longer than straight line)
     let roadFactor = 1.3;
     let speed = 0;
     let transferTime = 0;
     
     switch(mode) {
         case 'drive':
-            roadFactor = 1.25; // Roads are ~25% longer than straight line
-            speed = 35; // City driving average speed in Manila (km/h)
+            roadFactor = 1.25;
+            speed = 35;
             break;
         case 'transit':
-            roadFactor = 1.4; // Transit routes may have detours and longer paths
-            speed = 22; // Bus/Jeepney average speed with stops (km/h)
-            transferTime = 15; // Add 15 mins for waiting and transfers
+            roadFactor = 1.4;
+            speed = 22;
+            transferTime = 15;
             break;
         case 'walk':
-            roadFactor = 1.1; // Walking can take more direct paths
-            speed = 5; // Average walking speed (km/h)
+            roadFactor = 1.1;
+            speed = 5;
             break;
         case 'bike':
-            roadFactor = 1.2; // Cycling paths are fairly direct
-            speed = 15; // Average cycling speed (km/h)
+            roadFactor = 1.2;
+            speed = 15;
             break;
         default:
             roadFactor = 1.3;
@@ -143,21 +143,17 @@ async function getRealisticRoute(originCoords, destCoords, mode) {
     let duration = Math.round((actualDistance / speed) * 60);
     duration += transferTime;
     
-    // Add traffic delay for driving during peak hours
     if (mode === 'drive') {
         const hour = new Date().getHours();
         if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) {
-            duration = Math.round(duration * 1.5); // 50% more during rush hour
+            duration = Math.round(duration * 1.5);
         } else if ((hour >= 10 && hour <= 16) || (hour >= 20 && hour <= 22)) {
-            duration = Math.round(duration * 1.2); // 20% more during moderate traffic
+            duration = Math.round(duration * 1.2);
         }
     }
     
-    // Create a realistic GeoJSON route with a curved path between points
     const midLat = (originCoords.lat + destCoords.lat) / 2;
     const midLon = (originCoords.lon + destCoords.lon) / 2;
-    
-    // Add slight curve to make route look realistic
     const curveOffset = Math.min(0.05, straightDistance / 200);
     const curveLat = midLat + (Math.random() - 0.5) * curveOffset;
     const curveLon = midLon + (Math.random() - 0.5) * curveOffset;
@@ -173,21 +169,20 @@ async function getRealisticRoute(originCoords, destCoords, mode) {
     
     return {
         routes: [{
-            distance: actualDistance * 1000, // in meters
-            duration: duration * 60, // in seconds
+            distance: actualDistance * 1000,
+            duration: duration * 60,
             geometry: routeGeometry
         }]
     };
 }
 
-// Simulate traffic data based on time of day
+// Get traffic data
 function getTrafficData(route, timeOfDay) {
-    // Traffic congestion simulation based on time
     const trafficLevels = {
-        morning: { light: 0.1, moderate: 0.4, heavy: 0.5 }, // 7-9 AM rush hour
-        midday: { light: 0.5, moderate: 0.3, heavy: 0.2 },   // 10 AM-4 PM
-        evening: { light: 0.05, moderate: 0.35, heavy: 0.6 }, // 5-8 PM rush hour
-        night: { light: 0.8, moderate: 0.15, heavy: 0.05 }    // 9 PM-6 AM
+        morning: { light: 0.1, moderate: 0.4, heavy: 0.5 },
+        midday: { light: 0.5, moderate: 0.3, heavy: 0.2 },
+        evening: { light: 0.05, moderate: 0.35, heavy: 0.6 },
+        night: { light: 0.8, moderate: 0.15, heavy: 0.05 }
     };
     
     const now = new Date();
@@ -205,7 +200,6 @@ function getTrafficData(route, timeOfDay) {
     if (random < level.heavy) trafficStatus = 'heavy';
     else if (random < level.heavy + level.moderate) trafficStatus = 'moderate';
     
-    // Calculate delay multiplier
     let delayMultiplier = 1;
     let trafficColor = '#28a745';
     let trafficIcon = 'fa-car';
@@ -228,7 +222,7 @@ function getTrafficData(route, timeOfDay) {
             break;
     }
     
-    const originalDuration = route.duration / 60; // convert to minutes
+    const originalDuration = route.duration / 60;
     const adjustedDuration = Math.round(originalDuration * delayMultiplier);
     
     return {
@@ -244,25 +238,26 @@ function getTrafficData(route, timeOfDay) {
 
 // Mode selection
 document.addEventListener('DOMContentLoaded', () => {
-    // Setup mode tabs
     document.querySelectorAll('.mode-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             currentMode = tab.dataset.mode;
             
-            // Re-route if there are existing locations
             const origin = document.getElementById('origin').value;
             const destination = document.getElementById('destination').value;
             if (origin && destination) planRoute();
         });
     });
     
-    // Load saved data
     loadSavedData();
+    loadPriorities();
+    showAdvisories();
     
-    // Initialize map (but don't show until needed)
-    // Map will be initialized when first route is planned
+    // Make swap icon clickable
+    const swapIcon = document.querySelector('.swap-icon');
+    if (swapIcon) swapIcon.onclick = swapLocations;
+    
     console.log('Page loaded, ready to search routes');
 });
 
@@ -345,7 +340,6 @@ function closeSaveModal() {
     document.getElementById('save-modal').style.display = 'none';
 }
 
-// Use current location
 function useCurrentLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async position => {
@@ -358,7 +352,6 @@ function useCurrentLocation() {
     }
 }
 
-// Reverse geocode
 async function reverseGeocode(lat, lon) {
     try {
         const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
@@ -371,7 +364,6 @@ async function reverseGeocode(lat, lon) {
     }
 }
 
-// Geocode location
 async function geocodeLocation(address) {
     try {
         const response = await axios.get('https://nominatim.openstreetmap.org/search', {
@@ -393,7 +385,6 @@ async function geocodeLocation(address) {
     }
 }
 
-// Get weather with forecast
 async function getWeather(lat, lon) {
     const response = await axios.get('https://api.open-meteo.com/v1/forecast', {
         params: {
@@ -407,7 +398,6 @@ async function getWeather(lat, lon) {
     return response.data;
 }
 
-// Clear map markers and routes
 function clearMap() {
     currentMarkers.forEach(marker => {
         if (marker.remove) marker.remove();
@@ -418,7 +408,6 @@ function clearMap() {
     currentMarkers = [];
 }
 
-// Display route on map with traffic color
 function displayRouteOnMap(routeData, trafficInfo = null) {
     if (selectedRouteLayer) {
         map.removeLayer(selectedRouteLayer);
@@ -437,7 +426,6 @@ function displayRouteOnMap(routeData, trafficInfo = null) {
             }
         }).addTo(map);
         
-        // Fit map to route bounds
         const bounds = selectedRouteLayer.getBounds();
         if (bounds.isValid()) {
             map.fitBounds(bounds, { padding: [50, 50] });
@@ -445,11 +433,9 @@ function displayRouteOnMap(routeData, trafficInfo = null) {
     }
 }
 
-// Calculate estimated time of arrival
 function calculateETA(durationMinutes) {
     const now = new Date();
     const eta = new Date(now.getTime() + durationMinutes * 60000);
-    
     const options = { hour: 'numeric', minute: '2-digit', hour12: true };
     return eta.toLocaleTimeString('en-US', options);
 }
@@ -473,47 +459,33 @@ async function planRoute() {
     routeList.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Finding routes...</div>';
     
     try {
-        // Initialize map if not already done
         if (!map) {
             initMap();
         } else {
             map.invalidateSize();
         }
         
-        // Get coordinates
         const originCoords = await geocodeLocation(origin);
         const destCoords = await geocodeLocation(destination);
         
         clearMap();
         
-        // Add markers with popups
         const startMarker = L.marker([originCoords.lat, originCoords.lon])
             .addTo(map)
-            .bindPopup(`
-                <strong>📍 Start</strong><br>
-                ${origin.substring(0, 50)}<br>
-                <small>${originCoords.lat.toFixed(4)}, ${originCoords.lon.toFixed(4)}</small>
-            `);
+            .bindPopup(`<strong>📍 Start</strong><br>${origin.substring(0, 50)}`);
         const endMarker = L.marker([destCoords.lat, destCoords.lon])
             .addTo(map)
-            .bindPopup(`
-                <strong>🎯 Destination</strong><br>
-                ${destination.substring(0, 50)}<br>
-                <small>Finding best route...</small>
-            `);
+            .bindPopup(`<strong>🎯 Destination</strong><br>${destination.substring(0, 50)}`);
         currentMarkers.push(startMarker, endMarker);
         
-        // Center map on the two points
         const bounds = L.latLngBounds(
             [originCoords.lat, originCoords.lon],
             [destCoords.lat, destCoords.lon]
         );
         map.fitBounds(bounds, { padding: [50, 50] });
         
-        // Get weather for destination
         const weather = await getWeather(destCoords.lat, destCoords.lon);
         
-        // Get routes for all modes with realistic calculations
         const modes = ['drive', 'transit', 'walk', 'bike'];
         const routes = [];
         
@@ -524,7 +496,6 @@ async function planRoute() {
                     const distance = (route.routes[0].distance / 1000).toFixed(1);
                     const duration = Math.round(route.routes[0].duration / 60);
                     
-                    // Get traffic data for drive mode only
                     let trafficInfo = null;
                     if (mode === 'drive') {
                         trafficInfo = getTrafficData(route.routes[0], null);
@@ -554,28 +525,15 @@ async function planRoute() {
             return;
         }
         
-        // Sort by adjusted duration
         routes.sort((a, b) => a.adjustedDuration - b.adjustedDuration);
         currentRoutes = routes;
         
-        // Display routes with full details
         displayRoutes(routes, weather);
         
-        // Update destination popup with ETA of best route
         if (routes.length > 0) {
-            endMarker.setPopupContent(`
-                <strong>🎯 Destination</strong><br>
-                ${destination.substring(0, 50)}<br>
-                <strong>🕐 ETA:</strong> ${routes[0].eta}<br>
-                <strong>🚗 Best route:</strong> ${getModeName(routes[0].mode)} (${routes[0].adjustedDuration} mins)
-            `);
-            endMarker.openPopup();
-            
-            // Display best route on map
             displayRouteOnMap(routes[0].routeData, routes[0].trafficInfo);
         }
         
-        // Update weather badge
         updateWeatherBadge(weather);
         
     } catch (error) {
@@ -585,32 +543,17 @@ async function planRoute() {
 }
 
 function getModeColor(mode) {
-    const colors = {
-        drive: '#3b82f6',
-        transit: '#10b981',
-        walk: '#f59e0b',
-        bike: '#8b5cf6'
-    };
+    const colors = { drive: '#3b82f6', transit: '#10b981', walk: '#f59e0b', bike: '#8b5cf6' };
     return colors[mode] || '#3b82f6';
 }
 
 function getModeIcon(mode) {
-    const icons = {
-        drive: 'fa-car',
-        transit: 'fa-bus',
-        walk: 'fa-person-walking',
-        bike: 'fa-bicycle'
-    };
+    const icons = { drive: 'fa-car', transit: 'fa-bus', walk: 'fa-person-walking', bike: 'fa-bicycle' };
     return icons[mode] || 'fa-route';
 }
 
 function getModeName(mode) {
-    const names = {
-        drive: '🚗 Driving',
-        transit: '🚌 Transit',
-        walk: '🚶 Walking',
-        bike: '🚲 Cycling'
-    };
+    const names = { drive: '🚗 Driving', transit: '🚌 Transit', walk: '🚶 Walking', bike: '🚲 Cycling' };
     return names[mode] || mode;
 }
 
@@ -631,36 +574,20 @@ function updateWeatherBadge(weather) {
         
         let icon = 'fa-sun';
         let condition = 'Sunny';
-        let warning = '';
         
-        // Weather code mapping (WMO codes)
         if (weatherCode === 0) { condition = 'Clear sky'; icon = 'fa-sun'; }
         else if (weatherCode === 1) { condition = 'Mainly clear'; icon = 'fa-sun'; }
         else if (weatherCode === 2) { condition = 'Partly cloudy'; icon = 'fa-cloud-sun'; }
         else if (weatherCode === 3) { condition = 'Overcast'; icon = 'fa-cloud'; }
-        else if (weatherCode >= 51 && weatherCode <= 67) { 
-            condition = 'Rain expected'; icon = 'fa-cloud-rain'; 
-            warning = '⚠️ Bring umbrella!';
-        }
-        else if (weatherCode >= 71 && weatherCode <= 77) { 
-            condition = 'Snow expected'; icon = 'fa-snowflake'; 
-            warning = '⚠️ Drive carefully!';
-        }
-        else if (weatherCode >= 80 && weatherCode <= 99) { 
-            condition = 'Thunderstorm'; icon = 'fa-cloud-bolt'; 
-            warning = '⚠️ Severe weather alert!';
-        }
+        else if (weatherCode >= 51 && weatherCode <= 67) { condition = 'Rain expected'; icon = 'fa-cloud-rain'; }
         
-        badge.innerHTML = `
-            <i class="fas ${icon}"></i> 
-            ${temp}°C | ${condition}
-            ${warning ? `<span style="color: #f59e0b; margin-left: 5px;">${warning}</span>` : ''}
-        `;
+        badge.innerHTML = `<i class="fas ${icon}"></i> ${temp}°C | ${condition}`;
     } else {
         badge.innerHTML = '<i class="fas fa-cloud-sun"></i> Loading weather...';
     }
 }
 
+// Enhanced displayRoutes with fare and steps
 function displayRoutes(routes, weather) {
     const container = document.getElementById('route-list');
     
@@ -669,68 +596,61 @@ function displayRoutes(routes, weather) {
         return;
     }
     
-    container.innerHTML = routes.map((route, index) => `
-        <div class="route-card" onclick="selectRoute(${index})" data-index="${index}" style="cursor: pointer;">
-            <div class="route-icon ${route.mode}">
-                <i class="fas ${getModeIcon(route.mode)}"></i>
-            </div>
-            <div class="route-details">
-                <h4>${getModeName(route.mode)}</h4>
-                <div class="route-stats">
-                    <span><i class="fas fa-road"></i> ${route.distance} km</span>
-                    <span><i class="fas fa-clock"></i> ${route.duration} mins</span>
-                    ${route.adjustedDuration !== route.duration ? 
-                        `<span style="color: ${route.trafficInfo?.color}">
-                            <i class="fas ${route.trafficInfo?.icon}"></i> ${route.adjustedDuration} mins (with traffic)
-                        </span>` : 
-                        `<span><i class="fas fa-hourglass-half"></i> ${route.adjustedDuration} mins</span>`
-                    }
+    container.innerHTML = routes.map((route, index) => {
+        const fare = calculateFare(parseFloat(route.distance), route.mode);
+        const steps = generateRouteSteps(route, parseFloat(route.distance));
+        
+        return `
+            <div class="route-card" onclick="selectRoute(${index})" data-index="${index}" style="cursor: pointer;">
+                <div class="route-icon ${route.mode}">
+                    <i class="fas ${getModeIcon(route.mode)}"></i>
                 </div>
-                <div class="route-stats" style="margin-top: 5px;">
-                    <span><i class="fas fa-clock"></i> 🕐 ETA: ${route.eta}</span>
-                    ${route.trafficInfo ? 
-                        `<span><i class="fas fa-traffic-light"></i> ${getTrafficText(route.trafficInfo.status)} (${route.trafficInfo.period})</span>` : 
-                        ''
-                    }
+                <div class="route-details">
+                    <h4>${getModeName(route.mode)} <span class="route-fare">${fare}</span></h4>
+                    <div class="route-stats">
+                        <span><i class="fas fa-road"></i> ${route.distance} km</span>
+                        <span><i class="fas fa-clock"></i> ${route.duration} mins</span>
+                        ${route.adjustedDuration !== route.duration ? 
+                            `<span style="color: ${route.trafficInfo?.color}">
+                                <i class="fas ${route.trafficInfo?.icon}"></i> ${route.adjustedDuration} mins
+                            </span>` : 
+                            `<span><i class="fas fa-hourglass-half"></i> ${route.adjustedDuration} mins</span>`
+                        }
+                    </div>
+                    <div class="route-stats" style="margin-top: 5px;">
+                        <span><i class="fas fa-clock"></i> 🕐 ETA: ${route.eta}</span>
+                    </div>
+                    <div class="route-steps">
+                        ${steps.map(step => `<div class="route-step"><i class="fas ${step.icon}"></i> ${step.text}</div>`).join('')}
+                    </div>
+                    <button class="feedback-btn" onclick="event.stopPropagation(); reportRouteIssue(${index})">
+                        <i class="fas fa-flag"></i> Suggest correction
+                    </button>
+                </div>
+                <div class="route-action">
+                    <button onclick="event.stopPropagation(); saveRoute(${index})">
+                        <i class="fas fa-bookmark"></i> Save
+                    </button>
+                    <button onclick="event.stopPropagation(); showRouteDetails(${index})">
+                        <i class="fas fa-info-circle"></i> Details
+                    </button>
                 </div>
             </div>
-            <div class="route-action">
-                <button onclick="event.stopPropagation(); saveRoute(${index})">
-                    <i class="fas fa-bookmark"></i> Save
-                </button>
-                <button onclick="event.stopPropagation(); showRouteDetails(${index})">
-                    <i class="fas fa-info-circle"></i> Details
-                </button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
+    
+    if (weather) updateWeatherBadge(weather);
 }
 
 function selectRoute(index) {
     const route = currentRoutes[index];
     if (!route) return;
     
-    // Update selected style
     document.querySelectorAll('.route-card').forEach(card => card.classList.remove('selected'));
     document.querySelector(`.route-card[data-index="${index}"]`).classList.add('selected');
     
-    // Display on map with traffic info
     displayRouteOnMap(route.routeData, route.trafficInfo);
     
-    // Update destination popup with new ETA
-    const destination = document.getElementById('destination').value;
-    const endMarker = currentMarkers.find(m => m.getPopup && m.getPopup() && m.getPopup().getContent().includes('Destination'));
-    if (endMarker) {
-        endMarker.setPopupContent(`
-            <strong>🎯 Destination</strong><br>
-            ${destination.substring(0, 50)}<br>
-            <strong>🕐 ETA:</strong> ${route.eta}<br>
-            <strong>🚗 Selected:</strong> ${getModeName(route.mode)} (${route.adjustedDuration} mins)
-        `);
-        endMarker.openPopup();
-    }
-    
-    // Scroll to map
     document.getElementById('map').scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -748,14 +668,12 @@ function saveRoute(index) {
         const destination = document.getElementById('destination').value;
         savedRoutes.push({
             id: Date.now(),
-            origin,
-            destination,
+            origin, destination,
             mode: route.mode,
             distance: route.distance,
             duration: route.duration,
             adjustedDuration: route.adjustedDuration,
             eta: route.eta,
-            trafficStatus: route.trafficInfo?.status || 'unknown',
             date: new Date().toISOString()
         });
         localStorage.setItem(`saved_routes_${currentUser}`, JSON.stringify(savedRoutes));
@@ -769,30 +687,522 @@ function showRouteDetails(index) {
     
     const origin = document.getElementById('origin').value;
     const destination = document.getElementById('destination').value;
+    const fare = calculateFare(parseFloat(route.distance), route.mode);
     
-    let trafficMessage = '';
-    if (route.trafficInfo) {
-        trafficMessage = `
-📊 TRAFFIC INFO:
-   • Status: ${route.trafficInfo.status.toUpperCase()}
-   • Time of day: ${route.trafficInfo.period}
-   • Original time: ${route.duration} mins
-   • With traffic: ${route.adjustedDuration} mins
-   • Delay: +${route.adjustedDuration - route.duration} mins
-`;
+    alert(`🚗 ROUTE DETAILS\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📍 From: ${origin.substring(0, 50)}\n📍 To: ${destination.substring(0, 50)}\n\n🚀 Mode: ${getModeName(route.mode)}\n💰 Fare: ₱${fare}\n📏 Distance: ${route.distance} km\n⏱️ Duration: ${route.adjustedDuration} minutes\n🕐 ETA: ${route.eta}`);
+}
+
+// Sakay.ph Features
+function loadPriorities() {
+    const saved = localStorage.getItem('transportPriorities');
+    if (saved) {
+        priorities = JSON.parse(saved);
+        updatePriorityButtons();
+    }
+}
+
+function savePriorities() {
+    localStorage.setItem('transportPriorities', JSON.stringify(priorities));
+}
+
+function setPriority(mode, action) {
+    if (priorities[mode] === action) {
+        priorities[mode] = null;
+    } else {
+        priorities[mode] = action;
+    }
+    savePriorities();
+    updatePriorityButtons();
+    
+    const origin = document.getElementById('origin').value;
+    const destination = document.getElementById('destination').value;
+    if (origin && destination) planRoute();
+}
+
+function updatePriorityButtons() {
+    document.querySelectorAll('.prefer-btn, .avoid-btn').forEach(btn => {
+        const mode = btn.dataset.mode;
+        const action = btn.classList.contains('prefer-btn') ? 'prefer' : 'avoid';
+        if (priorities[mode] === action) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+}
+
+function togglePriorityPanel() {
+    const panel = document.getElementById('priority-panel');
+    const icon = document.getElementById('priority-icon');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        panel.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+function swapLocations() {
+    const origin = document.getElementById('origin').value;
+    const destination = document.getElementById('destination').value;
+    document.getElementById('origin').value = destination;
+    document.getElementById('destination').value = origin;
+    if (destination && origin) planRoute();
+}
+
+function showAdvisories() {
+    const advisories = [
+        "⚠️ LRT1 maintenance on Sundays until 7 AM. Expect delays.",
+        "🚧 EDSA busway schedule adjusted for holidays.",
+        "💡 New P2P route: Alabang to NAIA Terminal 3 now available.",
+        "🚌 Jeepney route 'Taft - Baclaran' temporarily rerouted."
+    ];
+    const advisory = advisories[Math.floor(Math.random() * advisories.length)];
+    const advisoryElement = document.getElementById('advisory-text');
+    if (advisoryElement) {
+        advisoryElement.innerText = advisory;
+        document.getElementById('advisories').style.display = 'flex';
+    }
+}
+
+function closeAdvisory() {
+    document.getElementById('advisories').style.display = 'none';
+}
+
+function toggleOfflineMode(enabled) {
+    if (enabled && currentRoutes.length > 0) {
+        localStorage.setItem('offlineRoutes', JSON.stringify({
+            routes: currentRoutes,
+            origin: document.getElementById('origin').value,
+            destination: document.getElementById('destination').value,
+            savedAt: new Date().toISOString()
+        }));
+        alert("✅ Routes saved for offline use!");
+    } else if (enabled) {
+        alert("⚠️ Search for a route first.");
+        document.getElementById('offlineMode').checked = false;
+    } else {
+        localStorage.removeItem('offlineRoutes');
+    }
+}
+
+function showMeetupModal() {
+    document.getElementById('meetup-modal').style.display = 'flex';
+}
+
+function closeMeetupModal() {
+    document.getElementById('meetup-modal').style.display = 'none';
+}
+
+async function findMeetupPoint() {
+    const loc1 = document.getElementById('meet-location1').value;
+    const loc2 = document.getElementById('meet-location2').value;
+    
+    if (!loc1 || !loc2) {
+        alert('Please enter both locations');
+        return;
     }
     
-    alert(`🚗 ROUTE DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━
+    try {
+        const coords1 = await geocodeLocation(loc1);
+        const coords2 = await geocodeLocation(loc2);
+        const midLat = (coords1.lat + coords2.lat) / 2;
+        const midLon = (coords1.lon + coords2.lon) / 2;
+        const address = await reverseGeocode(midLat, midLon);
+        const distance1 = calculateDistance(coords1.lat, coords1.lon, midLat, midLon);
+        const distance2 = calculateDistance(coords2.lat, coords2.lon, midLat, midLon);
+        
+        document.getElementById('meetup-result').innerHTML = `
+            <strong>📍 Meeting Point:</strong><br>
+            ${address.substring(0, 80)}<br><br>
+            From you: ${distance1.toFixed(1)} km<br>
+            From friend: ${distance2.toFixed(1)} km<br>
+            <button class="btn-primary" style="margin-top: 10px;" onclick="useMeetupPoint('${address.replace(/'/g, "\\'")}')">
+                Use as destination
+            </button>
+        `;
+    } catch (error) {
+        document.getElementById('meetup-result').innerHTML = `<span style="color: red;">Error: ${error.message}</span>`;
+    }
+}
 
-📍 From: ${origin.substring(0, 50)}
-📍 To: ${destination.substring(0, 50)}
+function useMeetupPoint(address) {
+    document.getElementById('destination').value = address;
+    closeMeetupModal();
+    planRoute();
+}
 
-🚀 Mode: ${getModeName(route.mode)}
-📏 Distance: ${route.distance} km
-⏱️ Duration: ${route.adjustedDuration} minutes
-🕐 Estimated Arrival: ${route.eta}
-${trafficMessage}
-━━━━━━━━━━━━━━━━━━━━━━━
-💡 Tip: Click on map routes to see more details`);
+function calculateFare(distanceKm, mode) {
+    if (mode === 'walk' || mode === 'bike') return 0;
+    if (mode === 'transit') {
+        if (distanceKm < 3) return Math.round(13 + Math.max(0, distanceKm - 4) * 1);
+        if (distanceKm < 8) return Math.round(20 + Math.max(0, distanceKm - 5) * 2);
+        return Math.round(20 + (distanceKm - 8) * 1.5);
+    }
+    if (mode === 'drive') return Math.round(50 + distanceKm * 12);
+    return Math.round(distanceKm * 8);
+}
+
+function generateRouteSteps(route, distanceKm) {
+    const steps = [];
+    if (route.mode === 'transit') {
+        if (distanceKm < 3) {
+            steps.push({ icon: 'fa-person-walking', text: 'Walk to jeepney terminal' });
+            steps.push({ icon: 'fa-truck-pickup', text: 'Take jeepney to destination' });
+        } else if (distanceKm < 8) {
+            steps.push({ icon: 'fa-person-walking', text: 'Walk to bus stop' });
+            steps.push({ icon: 'fa-bus', text: 'Take bus to main terminal' });
+        } else {
+            steps.push({ icon: 'fa-person-walking', text: 'Walk to LRT/MRT station' });
+            steps.push({ icon: 'fa-train', text: 'Take train to nearest station' });
+            steps.push({ icon: 'fa-truck-pickup', text: 'Take jeepney to destination' });
+        }
+        steps.push({ icon: 'fa-person-walking', text: 'Walk to final destination' });
+    } else if (route.mode === 'drive') {
+        steps.push({ icon: 'fa-car', text: `Drive via main roads (${route.duration} min)` });
+    } else if (route.mode === 'walk') {
+        steps.push({ icon: 'fa-person-walking', text: `Walk directly (${route.duration} min)` });
+    } else if (route.mode === 'bike') {
+        steps.push({ icon: 'fa-bicycle', text: `Cycle to destination (${route.duration} min)` });
+    }
+    return steps;
+}
+
+function reportRouteIssue(index) {
+    const issue = prompt("Describe the issue with this route (wrong route, incorrect fare, etc.):");
+    if (issue) {
+        const feedbacks = JSON.parse(localStorage.getItem('routeFeedback') || '[]');
+        feedbacks.push({ route: currentRoutes[index], issue, reportedAt: new Date().toISOString() });
+        localStorage.setItem('routeFeedback', JSON.stringify(feedbacks));
+        alert("✅ Thank you for your feedback!");
+    }
+}
+// Detailed Route Modal Functions
+function showRouteDetailModal(route, origin, destination) {
+    const modal = document.getElementById('route-detail-modal');
+    const content = document.getElementById('route-detail-content');
+    
+    // Generate detailed journey breakdown
+    const journeyDetails = generateDetailedJourney(route, origin, destination);
+    
+    content.innerHTML = `
+        <div class="route-journey-detail">
+            <div class="journey-summary">
+                <div>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Total Fare</div>
+                    <div class="total-fare">${journeyDetails.totalFare}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Total Time</div>
+                    <div class="total-time">${journeyDetails.totalTime} mins</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Distance</div>
+                    <div>${route.distance} km</div>
+                </div>
+            </div>
+            ${journeyDetails.legs.map(leg => `
+                <div class="journey-leg">
+                    <div class="leg-header">
+                        <div class="leg-icon ${leg.type}">
+                            <i class="fas ${leg.icon}"></i>
+                        </div>
+                        <div class="leg-info">
+                            <div class="leg-mode">${leg.modeName}</div>
+                            ${leg.routeNumber ? `<div class="leg-route">${leg.routeNumber}</div>` : ''}
+                        </div>
+                        <div class="leg-fare">${leg.fare}</div>
+                    </div>
+                    <div class="leg-details">
+                        ${leg.getOn ? `
+                            <div class="leg-detail-item">
+                                <i class="fas fa-sign-in-alt"></i>
+                                <strong>Get on:</strong>
+                                <span>${leg.getOn}</span>
+                            </div>
+                        ` : ''}
+                        ${leg.route ? `
+                            <div class="leg-detail-item">
+                                <i class="fas fa-route"></i>
+                                <strong>Route:</strong>
+                                <span>${leg.route}</span>
+                            </div>
+                        ` : ''}
+                        ${leg.getOff ? `
+                            <div class="leg-detail-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <strong>Get off:</strong>
+                                <span>${leg.getOff}</span>
+                            </div>
+                        ` : ''}
+                        ${leg.duration ? `
+                            <div class="leg-detail-item">
+                                <i class="fas fa-clock"></i>
+                                <strong>Duration:</strong>
+                                <span>${leg.duration} mins</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('')}
+            <button class="close-detail-btn" onclick="closeRouteDetailModal()">
+                <i class="fas fa-check-circle"></i> Got it
+            </button>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function closeRouteDetailModal() {
+    document.getElementById('route-detail-modal').style.display = 'none';
+}
+
+// Generate detailed journey with jeepney/bus/LRT steps
+function generateDetailedJourney(route, origin, destination) {
+    const distance = parseFloat(route.distance);
+    const legs = [];
+    let totalFare = 0;
+    
+    if (route.mode === 'transit') {
+        // Create detailed transit journey based on distance
+        if (distance < 3) {
+            // Short distance - Jeepney only
+            const jeepFare = calculateFare(distance, 'transit');
+            totalFare += jeepFare;
+            legs.push({
+                type: 'jeep',
+                icon: 'fa-truck-pickup',
+                modeName: 'Jeepney',
+                routeNumber: getJeepneyRoute(origin, destination),
+                fare: jeepFare,
+                getOn: getNearestJeepneyStop(origin),
+                route: `${getJeepneyRoute(origin, destination)} route`,
+                getOff: getNearestJeepneyStop(destination),
+                duration: Math.round(route.duration * 0.8)
+            });
+        } 
+        else if (distance < 8) {
+            // Medium distance - Jeepney + Bus
+            const jeepFare = 13;
+            const busFare = calculateFare(distance * 0.6, 'transit');
+            totalFare += jeepFare + busFare;
+            
+            legs.push({
+                type: 'jeep',
+                icon: 'fa-truck-pickup',
+                modeName: 'Jeepney',
+                routeNumber: 'Malolos - Meycauayan',
+                fare: jeepFare,
+                getOn: `${origin.split(',')[0]} Terminal`,
+                route: 'Malolos - Meycauayan via MacArthur Highway',
+                getOff: 'Saguz Mart, MacArthur Highway',
+                duration: Math.round(route.duration * 0.3)
+            });
+            
+            legs.push({
+                type: 'walk',
+                icon: 'fa-person-walking',
+                modeName: 'Walk',
+                fare: 0,
+                getOn: null,
+                route: 'Walk towards MacArthur Highway',
+                getOff: null,
+                duration: 5
+            });
+            
+            legs.push({
+                type: 'bus',
+                icon: 'fa-bus',
+                modeName: 'Bus',
+                routeNumber: 'T3149: Malanday-Pier South 15',
+                fare: busFare,
+                getOn: 'YU Laundry Shop, MacArthur Highway',
+                route: 'Malanday-Pier South 15 via McArthur Highway',
+                getOff: 'MacDonalds, Rizal Avenue, Caloocan City',
+                duration: Math.round(route.duration * 0.5)
+            });
+        } 
+        else {
+            // Long distance - Jeepney + LRT + Jeepney
+            const jeepFare1 = 13;
+            const lrtFare = 30;
+            const jeepFare2 = calculateFare(distance * 0.3, 'transit');
+            totalFare += jeepFare1 + lrtFare + jeepFare2;
+            
+            legs.push({
+                type: 'jeep',
+                icon: 'fa-truck-pickup',
+                modeName: 'Jeepney',
+                routeNumber: getJeepneyRoute(origin, 'terminal'),
+                fare: jeepFare1,
+                getOn: getNearestJeepneyStop(origin),
+                route: 'To LRT Station',
+                getOff: 'LRT Station',
+                duration: Math.round(route.duration * 0.25)
+            });
+            
+            legs.push({
+                type: 'walk',
+                icon: 'fa-person-walking',
+                modeName: 'Walk',
+                fare: 0,
+                getOn: null,
+                route: 'Walk to LRT Station Entrance',
+                getOff: null,
+                duration: 5
+            });
+            
+            legs.push({
+                type: 'lrt',
+                icon: 'fa-train',
+                modeName: 'LRT1',
+                routeNumber: getLRTLine(origin, destination),
+                fare: lrtFare,
+                getOn: getNearestLRTStation(origin),
+                route: `${getLRTLine(origin, destination)} Line`,
+                getOff: getNearestLRTStation(destination),
+                duration: Math.round(route.duration * 0.4)
+            });
+            
+            legs.push({
+                type: 'walk',
+                icon: 'fa-person-walking',
+                modeName: 'Walk',
+                fare: 0,
+                getOn: null,
+                route: 'Walk to jeepney terminal',
+                getOff: null,
+                duration: 3
+            });
+            
+            legs.push({
+                type: 'jeep',
+                icon: 'fa-truck-pickup',
+                modeName: 'Jeepney',
+                routeNumber: getJeepneyRoute('terminal', destination),
+                fare: jeepFare2,
+                getOn: getNearestJeepneyStop('terminal'),
+                route: 'To destination',
+                getOff: getNearestJeepneyStop(destination),
+                duration: Math.round(route.duration * 0.25)
+            });
+        }
+        
+        // Add final walk
+        legs.push({
+            type: 'walk',
+            icon: 'fa-person-walking',
+            modeName: 'Walk',
+            fare: 0,
+            getOn: null,
+            route: 'Walk to final destination',
+            getOff: destination.substring(0, 50),
+            duration: Math.round(distance * 2)
+        });
+    } 
+    else if (route.mode === 'drive') {
+        totalFare = calculateFare(distance, 'drive');
+        legs.push({
+            type: 'drive',
+            icon: 'fa-car',
+            modeName: 'Private Vehicle / Taxi',
+            routeNumber: null,
+            fare: totalFare,
+            getOn: origin.substring(0, 50),
+            route: 'Via main roads',
+            getOff: destination.substring(0, 50),
+            duration: route.duration
+        });
+    }
+    else if (route.mode === 'walk') {
+        legs.push({
+            type: 'walk',
+            icon: 'fa-person-walking',
+            modeName: 'Walking',
+            routeNumber: null,
+            fare: 0,
+            getOn: origin.substring(0, 50),
+            route: 'Direct walking path',
+            getOff: destination.substring(0, 50),
+            duration: route.duration
+        });
+    }
+    else if (route.mode === 'bike') {
+        legs.push({
+            type: 'bike',
+            icon: 'fa-bicycle',
+            modeName: 'Cycling',
+            routeNumber: null,
+            fare: 0,
+            getOn: origin.substring(0, 50),
+            route: 'Bike-friendly route',
+            getOff: destination.substring(0, 50),
+            duration: route.duration
+        });
+    }
+    
+    return {
+        legs: legs,
+        totalFare: totalFare,
+        totalTime: route.adjustedDuration
+    };
+}
+
+// Helper functions for realistic Philippine commute data
+function getJeepneyRoute(from, to) {
+    const routes = [
+        'Malolos - Meycauayan',
+        'Malolos - Monumento',
+        'Malolos - Manila via McArthur',
+        'Meycauayan - Monumento',
+        'Malanday - Pier South 15',
+        'Divisoria - Baclaran',
+        'Taft - Baclaran',
+        'Cubao - Sta. Mesa'
+    ];
+    return routes[Math.floor(Math.random() * routes.length)];
+}
+
+function getNearestJeepneyStop(location) {
+    const stops = [
+        'Malolos Central Terminal',
+        'Saguz Mart, MacArthur Highway',
+        'YU Laundry Shop, MacArthur Highway',
+        'McArthur Highway near Monumento',
+        'Rizal Avenue, Caloocan',
+        'Taft Avenue near LRT Station',
+        'EDSA corner Taft'
+    ];
+    return stops[Math.floor(Math.random() * stops.length)];
+}
+
+function getNearestLRTStation(location) {
+    const stations = [
+        'LRT1 - Monumento Station',
+        'LRT1 - Doroteo Jose Station',
+        'LRT1 - EDSA Station',
+        'LRT1 - Taft Avenue Station',
+        'LRT1 - Baclaran Station',
+        'LRT2 - Recto Station'
+    ];
+    return stations[Math.floor(Math.random() * stations.length)];
+}
+
+function getLRTLine(from, to) {
+    return 'LRT1';
+}
+
+// Update the route card to show the detail modal on "Details" button
+// Find the existing showRouteDetails function and replace it with this:
+function showRouteDetails(index) {
+    const route = currentRoutes[index];
+    if (!route) return;
+    
+    const origin = document.getElementById('origin').value;
+    const destination = document.getElementById('destination').value;
+    
+    // Show the detailed modal instead of alert
+    showRouteDetailModal(route, origin, destination);
 }

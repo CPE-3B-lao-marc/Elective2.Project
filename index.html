@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Smart Commute Planner | Multi-Transport Route Finder</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Leaflet CSS - Critical for map -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Quick fix - ensure map container has height */
         #map { 
             height: 450px; 
             width: 100%; 
             background: #e2e8f0;
             min-height: 400px;
+            border-radius: 16px;
         }
         .leaflet-container {
             background: #e2e8f0;
@@ -23,7 +23,6 @@
     </style>
 </head>
 <body>
-    <!-- Header Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="logo">
@@ -38,7 +37,6 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
             <h1>Find the best way to get there</h1>
@@ -46,7 +44,6 @@
         </div>
     </section>
 
-    <!-- Main Search Container -->
     <div class="search-container">
         <div class="search-card">
             <div class="search-header">
@@ -71,6 +68,48 @@
                 </div>
             </div>
             
+            <!-- Priority Section -->
+            <div class="priority-section">
+                <div class="priority-header" onclick="togglePriorityPanel()">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Manage your priorities</span>
+                    <i class="fas fa-chevron-down" id="priority-icon"></i>
+                </div>
+                <div id="priority-panel" class="priority-panel" style="display: none;">
+                    <p class="priority-desc">Choose which transport modes to prefer or avoid</p>
+                    <div class="priority-grid">
+                        <div class="priority-item">
+                            <span><i class="fas fa-truck-pickup"></i> Jeepney</span>
+                            <div class="priority-buttons">
+                                <button class="prefer-btn" data-mode="jeepney" onclick="setPriority('jeepney', 'prefer')">⭐ Prefer</button>
+                                <button class="avoid-btn" data-mode="jeepney" onclick="setPriority('jeepney', 'avoid')">🚫 Avoid</button>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <span><i class="fas fa-bus"></i> Bus / P2P</span>
+                            <div class="priority-buttons">
+                                <button class="prefer-btn" data-mode="bus" onclick="setPriority('bus', 'prefer')">⭐ Prefer</button>
+                                <button class="avoid-btn" data-mode="bus" onclick="setPriority('bus', 'avoid')">🚫 Avoid</button>
+                            </div>
+                        </div>
+                        <div class="priority-item">
+                            <span><i class="fas fa-train"></i> LRT/MRT</span>
+                            <div class="priority-buttons">
+                                <button class="prefer-btn" data-mode="train" onclick="setPriority('train', 'prefer')">⭐ Prefer</button>
+                                <button class="avoid-btn" data-mode="train" onclick="setPriority('train', 'avoid')">🚫 Avoid</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advisories Banner -->
+            <div id="advisories" class="advisories-banner" style="display: none;">
+                <i class="fas fa-info-circle"></i>
+                <span id="advisory-text"></span>
+                <button onclick="closeAdvisory()">×</button>
+            </div>
+            
             <div class="search-inputs">
                 <div class="input-group">
                     <div class="input-icon">
@@ -82,7 +121,7 @@
                     </button>
                 </div>
                 
-                <div class="swap-icon">
+                <div class="swap-icon" onclick="swapLocations()">
                     <i class="fas fa-arrow-down"></i>
                 </div>
                 
@@ -96,23 +135,33 @@
                 <button class="btn-search" onclick="planRoute()">
                     <i class="fas fa-magnifying-glass"></i> Find Routes
                 </button>
+                
+                <button class="btn-meet-full" onclick="showMeetupModal()">
+                    <i class="fas fa-handshake"></i> Meet in the middle
+                </button>
             </div>
             
             <div class="recent-searches" id="recent-searches">
                 <span><i class="fas fa-clock"></i> Recent:</span>
                 <div id="recent-list"></div>
             </div>
+            
+            <div class="offline-toggle">
+                <i class="fas fa-download"></i>
+                <label class="switch">
+                    <input type="checkbox" id="offlineMode" onchange="toggleOfflineMode(this.checked)">
+                    <span class="slider round"></span>
+                </label>
+                <span>Save routes for offline use</span>
+            </div>
         </div>
     </div>
 
-    <!-- Results Container -->
     <div id="results-container" style="display: none;">
-        <!-- Map Section -->
         <div class="map-section">
             <div id="map"></div>
         </div>
         
-        <!-- Route Options -->
         <div class="routes-section">
             <div class="routes-header">
                 <h3><i class="fas fa-route"></i> Available Routes</h3>
@@ -122,7 +171,7 @@
         </div>
     </div>
 
-    <!-- Login Modal -->
+    <!-- Modals -->
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -138,7 +187,6 @@
         </div>
     </div>
 
-    <!-- Save Location Modal -->
     <div id="save-modal" class="modal">
         <div class="modal-content small">
             <div class="modal-header">
@@ -154,27 +202,36 @@
             </div>
         </div>
     </div>
+    
+    <div id="meetup-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-handshake"></i> Meet in the Middle</h3>
+                <button class="modal-close" onclick="closeMeetupModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="meet-location1" placeholder="Your location" class="modal-input">
+                <input type="text" id="meet-location2" placeholder="Friend's location" class="modal-input">
+                <button class="btn-primary" onclick="findMeetupPoint()">Find Meeting Point</button>
+                <div id="meetup-result" class="meetup-result"></div>
+            </div>
+        </div>
+    </div>
 
-    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="script.js"></script>
-    
-    <script>
-        // Emergency test - check if map loads
-        console.log('Page loaded, checking map element...');
-        setTimeout(() => {
-            const mapElement = document.getElementById('map');
-            if (mapElement) {
-                console.log('Map element found, height:', mapElement.clientHeight);
-                if (mapElement.clientHeight === 0) {
-                    console.warn('Map height is 0! Check CSS');
-                    mapElement.style.height = '450px';
-                }
-            } else {
-                console.error('Map element not found!');
-            }
-        }, 500);
-    </script>
 </body>
+<!-- Detailed Route Modal -->
+    <div id="route-detail-modal" class="modal">
+    <div class="modal-content route-detail-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-map-signs"></i> Journey Details</h3>
+            <button class="modal-close" onclick="closeRouteDetailModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="route-detail-content">
+            <!-- Dynamic content will be injected here -->
+        </div>
+    </div>
+</div>
 </html>
