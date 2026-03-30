@@ -1,26 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Smart Commute Planner | Multi-Transport Route Finder</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        #map { 
-            height: 450px; 
-            width: 100%; 
-            background: #e2e8f0;
-            min-height: 400px;
-            border-radius: 16px;
-        }
-        .leaflet-container {
-            background: #e2e8f0;
-        }
-    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -29,10 +16,15 @@
                 <i class="fas fa-route"></i>
                 <span>Smart<span class="highlight">Commute</span></span>
             </div>
-            <div class="nav-links" id="user-nav">
-                <button class="btn-login" onclick="showLoginModal()">
-                    <i class="fas fa-user-circle"></i> Login
+            <div class="nav-right">
+                <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">
+                    <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
+                <div class="nav-links" id="user-nav">
+                    <button class="btn-login" onclick="showLoginModal()">
+                        <i class="fas fa-user-circle"></i> <span class="btn-login-text">Login</span>
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
@@ -47,27 +39,34 @@
     <div class="search-container">
         <div class="search-card">
             <div class="search-header">
-                <div class="mode-tabs">
-                    <button class="mode-tab active" data-mode="drive">
-                        <i class="fas fa-car"></i> Drive
-                    </button>
-                    <button class="mode-tab" data-mode="transit">
-                        <i class="fas fa-bus"></i> Transit
-                    </button>
-                    <button class="mode-tab" data-mode="walk">
-                        <i class="fas fa-walking"></i> Walk
-                    </button>
-                    <button class="mode-tab" data-mode="bike">
-                        <i class="fas fa-bicycle"></i> Bike
-                    </button>
+                <div class="mode-tabs" id="mode-tabs">
+                    <button class="mode-tab active" data-mode="drive"><i class="fas fa-car"></i> <span>Drive</span></button>
+                    <button class="mode-tab" data-mode="transit"><i class="fas fa-bus"></i> <span>Transit</span></button>
+                    <button class="mode-tab" data-mode="walk"><i class="fas fa-walking"></i> <span>Walk</span></button>
+                    <button class="mode-tab" data-mode="bike"><i class="fas fa-bicycle"></i> <span>Bike</span></button>
                 </div>
-                <div class="saved-locations">
+                <div class="header-actions">
                     <button class="btn-saved" onclick="showSavedLocations()">
-                        <i class="fas fa-bookmark"></i> Saved Places
+                        <i class="fas fa-bookmark"></i> <span class="hide-mobile">Saved Places</span>
                     </button>
                 </div>
             </div>
-            
+
+            <!-- Departure Time Picker -->
+            <div class="time-picker-row">
+                <div class="time-picker-group">
+                    <label><i class="fas fa-clock"></i> Depart</label>
+                    <select id="depart-type" onchange="toggleCustomTime()">
+                        <option value="now">Leave now</option>
+                        <option value="custom">Set time</option>
+                    </select>
+                </div>
+                <div class="time-picker-group" id="custom-time-group" style="display:none;">
+                    <label><i class="fas fa-calendar"></i> When</label>
+                    <input type="datetime-local" id="depart-time" />
+                </div>
+            </div>
+
             <!-- Priority Section -->
             <div class="priority-section">
                 <div class="priority-header" onclick="togglePriorityPanel()">
@@ -102,50 +101,51 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Advisories Banner -->
             <div id="advisories" class="advisories-banner" style="display: none;">
                 <i class="fas fa-info-circle"></i>
                 <span id="advisory-text"></span>
                 <button onclick="closeAdvisory()">×</button>
             </div>
-            
+
             <div class="search-inputs">
                 <div class="input-group">
-                    <div class="input-icon">
-                        <i class="fas fa-circle-dot"></i>
-                    </div>
+                    <div class="input-icon origin-dot"></div>
                     <input type="text" id="origin" placeholder="From: Enter location or address" autocomplete="off">
-                    <button class="btn-locate" onclick="useCurrentLocation()">
+                    <button class="btn-locate" onclick="useCurrentLocation()" title="Use current location">
                         <i class="fas fa-location-dot"></i>
                     </button>
                 </div>
-                
-                <div class="swap-icon" onclick="swapLocations()">
-                    <i class="fas fa-arrow-down"></i>
+
+                <div class="swap-row">
+                    <div class="swap-line"></div>
+                    <button class="swap-icon" onclick="swapLocations()" title="Swap locations">
+                        <i class="fas fa-arrow-down-arrow-up"></i>
+                    </button>
+                    <div class="swap-line"></div>
                 </div>
-                
+
                 <div class="input-group">
-                    <div class="input-icon">
-                        <i class="fas fa-location-dot"></i>
-                    </div>
+                    <div class="input-icon dest-dot"></div>
                     <input type="text" id="destination" placeholder="To: Enter destination" autocomplete="off">
                 </div>
-                
-                <button class="btn-search" onclick="planRoute()">
-                    <i class="fas fa-magnifying-glass"></i> Find Routes
-                </button>
-                
-                <button class="btn-meet-full" onclick="showMeetupModal()">
-                    <i class="fas fa-handshake"></i> Meet in the middle
-                </button>
+
+                <div class="search-actions">
+                    <button class="btn-search" onclick="planRoute()">
+                        <i class="fas fa-magnifying-glass"></i> Find Routes
+                    </button>
+                    <button class="btn-meet-full" onclick="showMeetupModal()">
+                        <i class="fas fa-handshake"></i> <span>Meet in the Middle</span>
+                    </button>
+                </div>
             </div>
-            
+
             <div class="recent-searches" id="recent-searches">
-                <span><i class="fas fa-clock"></i> Recent:</span>
+                <span class="recent-label"><i class="fas fa-clock"></i> Recent:</span>
                 <div id="recent-list"></div>
             </div>
-            
+
             <div class="offline-toggle">
                 <i class="fas fa-download"></i>
                 <label class="switch">
@@ -158,20 +158,30 @@
     </div>
 
     <div id="results-container" style="display: none;">
-        <div class="map-section">
-            <div id="map"></div>
-        </div>
-        
-        <div class="routes-section">
-            <div class="routes-header">
-                <h3><i class="fas fa-route"></i> Available Routes</h3>
-                <div class="weather-badge" id="weather-badge"></div>
+        <div class="results-inner">
+            <div class="map-section">
+                <div id="map"></div>
+                <div class="map-overlay-info" id="map-overlay" style="display:none;">
+                    <span id="map-route-label"></span>
+                </div>
             </div>
-            <div id="route-list" class="route-list"></div>
+
+            <div class="routes-section">
+                <div class="routes-header">
+                    <h3><i class="fas fa-route"></i> Available Routes</h3>
+                    <div class="routes-header-actions">
+                        <div class="weather-badge" id="weather-badge"><i class="fas fa-cloud-sun"></i> Loading...</div>
+                        <button class="btn-share" onclick="shareCurrentRoute()" title="Share route">
+                            <i class="fas fa-share-nodes"></i> Share
+                        </button>
+                    </div>
+                </div>
+                <div id="route-list" class="route-list"></div>
+            </div>
         </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Login Modal -->
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -187,6 +197,7 @@
         </div>
     </div>
 
+    <!-- Save Location Modal -->
     <div id="save-modal" class="modal">
         <div class="modal-content small">
             <div class="modal-header">
@@ -202,7 +213,8 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Meet in the Middle Modal -->
     <div id="meetup-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -218,20 +230,42 @@
         </div>
     </div>
 
+    <!-- Share Route Modal -->
+    <div id="share-modal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3><i class="fas fa-share-nodes"></i> Share Route</h3>
+                <button class="modal-close" onclick="closeShareModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.85rem; margin-bottom:1rem; opacity:0.7;">Share this route with others</p>
+                <div class="share-url-box">
+                    <input type="text" id="share-url" class="modal-input" readonly>
+                    <button class="btn-copy" onclick="copyShareLink()"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                <div class="share-buttons">
+                    <button class="share-btn messenger" onclick="shareViaMessenger()"><i class="fab fa-facebook-messenger"></i> Messenger</button>
+                    <button class="share-btn viber" onclick="shareViaViber()"><i class="fab fa-viber"></i> Viber</button>
+                    <button class="share-btn copy-plain" onclick="copyShareLink()"><i class="fas fa-link"></i> Copy Link</button>
+                </div>
+                <p id="copy-confirm" style="display:none; color:#10b981; font-size:0.8rem; text-align:center; margin-top:0.5rem;">✅ Link copied!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Route Modal -->
+    <div id="route-detail-modal" class="modal">
+        <div class="modal-content route-detail-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-map-signs"></i> Journey Details</h3>
+                <button class="modal-close" onclick="closeRouteDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="route-detail-content"></div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="script.js"></script>
 </body>
-<!-- Detailed Route Modal -->
-    <div id="route-detail-modal" class="modal">
-    <div class="modal-content route-detail-modal">
-        <div class="modal-header">
-            <h3><i class="fas fa-map-signs"></i> Journey Details</h3>
-            <button class="modal-close" onclick="closeRouteDetailModal()">&times;</button>
-        </div>
-        <div class="modal-body" id="route-detail-content">
-            <!-- Dynamic content will be injected here -->
-        </div>
-    </div>
-</div>
 </html>
