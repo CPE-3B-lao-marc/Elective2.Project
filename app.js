@@ -22,9 +22,11 @@ app.use(express.static(indexPath));
 
 // Routes import
 import userRouter from "./routes/user.route.js";
+import locationRouter from "./routes/location.route.js";
 
 // Routes declaration
 app.use("/api/users", userRouter);
+app.use("/api/locations", locationRouter);
 
 // Serve index.html for all non-API routes
 app.use((req, res) => {
