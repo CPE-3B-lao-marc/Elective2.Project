@@ -77,12 +77,8 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Generate a token for the user
-    const token = await user.generateToken();
-
     res.status(200).json({
       message: "User logged in successfully",
-      token,
       user: {
         id: user._id,
         username: user.username,
