@@ -52,45 +52,45 @@ const registerUser = async (req, res) => {
 };
 
 // Login user
-const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+// const loginUser = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
 
-    // Validate input
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required" });
-    }
+//     // Validate input
+//     if (!email || !password) {
+//       return res
+//         .status(400)
+//         .json({ message: "Email and password are required" });
+//     }
 
-    // Find the user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
+//     // Find the user by email
+//     const user = await User.findOne({ email: email.toLowerCase() });
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
 
-    // Check if the password is correct
-    const isMatch = await user.comparePassword(password);
+//     // Check if the password is correct
+//     const isMatch = await user.comparePassword(password);
 
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+//     if (!isMatch) {
+//       return res.status(401).json({ message: "Invalid credentials" });
+//     }
 
-    res.status(200).json({
-      message: "User logged in successfully",
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-      },
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
-  }
-};
+//     res.status(200).json({
+//       message: "User logged in successfully",
+//       user: {
+//         id: user._id,
+//         username: user.username,
+//         email: user.email,
+//       },
+//     });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ message: "Internal server error", error: error.message });
+//   }
+// };
 
 // logout user
 const logoutUser = async (req, res) => {
@@ -106,13 +106,35 @@ const logoutUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({
-      message: "User logged out successfully",
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-      },
+    req.logout((err) => {
+      if (err) {
+        return res
+          .status(500)
+          .json({
+            message: "Internal server error: Error occurred while logging out",
+          });
+      }
+      req.session.destroy((err) => {
+        if (err) {
+          return res
+            .status(500)
+            .json({
+              message:
+                "Internal server error: Error occurred while destroying session",
+            });
+        }
+
+        res.clearCookie("connect.sid"); // Clear the session cookie
+
+        return res.status(200).json({
+          message: "User logged out successfully",
+          user: {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+          },
+        });
+      });
     });
   } catch (error) {
     res
@@ -121,4 +143,14 @@ const logoutUser = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, logoutUser };
+// index route to check if user is authenticated
+const index = async (req, res) => {
+  if (req.isAuthenticated()) {
+    return res.json({
+      message: "User is authenticated",
+    });
+  }
+  res.status(401).json({ message: "Unauthorized" });
+};
+
+export { registerUser, logoutUser, index };

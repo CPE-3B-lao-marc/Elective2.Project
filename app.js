@@ -3,19 +3,18 @@ import path from "path";
 import { fileURLToPath } from "url";
 import flash from "express-flash";
 import session from "express-session";
-import { User } from "./models/user.model.js";
 import passport from "passport";
 import initializePassport from "./config/passport.js";
+import dotenv from "dotenv";
+dotenv.config();
 
-initializePassport(passport, async (email) => {
-  return await User.findOne({ email: email.toLowerCase() });
-});
+initializePassport(passport);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.set("view-engine", "ejs");
+app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
