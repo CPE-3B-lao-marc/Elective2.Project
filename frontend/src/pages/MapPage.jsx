@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -21,6 +22,7 @@ function MapPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [routeInfo, setRouteInfo] = useState(null);
+  const { user } = useAuth();
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
   const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
@@ -209,6 +211,9 @@ function MapPage() {
               <h1 className="text-3xl font-semibold text-slate-950">
                 Plan your commute with Google Directions + Mapbox
               </h1>
+              {user ? (
+                <p className="mt-3 text-sm text-slate-600">Welcome back, {user.username}.</p>
+              ) : null}
             </div>
             <div className="rounded-2xl bg-slate-950 px-4 py-3 text-sm text-white shadow-sm">
               API mode: frontend route search
