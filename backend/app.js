@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import flash from "express-flash";
@@ -14,6 +15,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// CORS configuration, update the origin to match your frontend URL and port after deployment,
+// actual domain will be used instead of localhost
+app.use(
+  cors({ origin: "http://localhost:5173", credentials: true }),
+);
+
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -24,6 +32,10 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      sameSite: "none",
+      secure: false,
+    },
   }),
 );
 

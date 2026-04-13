@@ -95,46 +95,118 @@ const registerUser = async (req, res) => {
 // logout user
 const logoutUser = async (req, res) => {
   try {
-    // Implementation for user logout
-    // This might involve invalidating the user's token or clearing their session
-
-    const { email } = req.body;
-
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = req.user;
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
     req.logout((err) => {
       if (err) {
-        return res
-          .status(500)
-          .json({
-            message: "Internal server error: Error occurred while logging out",
-          });
+        return res.status(500).json({
+          message: "Internal server error: Error occurred while logging out",
+        });
       }
+
       req.session.destroy((err) => {
         if (err) {
-          return res
-            .status(500)
-            .json({
-              message:
-                "Internal server error: Error occurred while destroying session",
-            });
+          return res.status(500).json({
+            message:
+              "Internal server error: Error occurred while destroying session",
+          });
         }
 
         res.clearCookie("connect.sid"); // Clear the session cookie
 
         return res.status(200).json({
           message: "User logged out successfully",
-          user: {
-            id: user._id,
-            username: user.username,
-            email: user.email,
-          },
         });
       });
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+// update authenticated user profile
+const updateProfile = async (req, res) => {
+  try {
+    const { username, email, oldPassword, newPassword, confirmPassword } =
+      req.body;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!username || !email) {
+      return res
+        .status(400)
+        .json({ message: "Username and email are required" });
+    }
+
+    if (!email.match(/^\S+@\S+\.\S+$/)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+
+    if (username.length < 3 || username.length > 30) {
+      return res
+        .status(400)
+        .json({ message: "Username must be between 3 and 30 characters" });
+    }
+
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email: email.toLowerCase() }],
+      _id: { $ne: user._id },
+    });
+
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "Username or email is already in use" });
+    }
+
+    if (oldPassword || newPassword || confirmPassword) {
+      if (!oldPassword || !newPassword || !confirmPassword) {
+        return res
+          .status(400)
+          .json({
+            message: "All password fields are required to change password",
+          });
+      }
+
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: "New passwords do not match" });
+      }
+
+      if (newPassword.length < 6) {
+        return res
+          .status(400)
+          .json({ message: "New password must be at least 6 characters long" });
+      }
+
+      const isMatch = await user.comparePassword(oldPassword);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Old password is incorrect" });
+      }
+
+      user.password = newPassword;
+    }
+
+    user.username = username;
+    user.email = email.toLowerCase();
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
     });
   } catch (error) {
     res
@@ -148,9 +220,14 @@ const index = async (req, res) => {
   if (req.isAuthenticated()) {
     return res.json({
       message: "User is authenticated",
+      user: {
+        id: req.user._id,
+        username: req.user.username,
+        email: req.user.email,
+      },
     });
   }
   res.status(401).json({ message: "Unauthorized" });
 };
 
-export { registerUser, logoutUser, index };
+export { registerUser, logoutUser, index, updateProfile };
