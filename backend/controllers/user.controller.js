@@ -10,6 +10,13 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    // Username must be minLength: 3, maxLength: 30
+    if (username.length < 3 || username.length > 30) {
+      return res
+        .status(400)
+        .json({ message: "Username must be between 3 and 30 characters long" });
+    }
+
     if (password.length < 6) {
       return res
         .status(400)
@@ -170,11 +177,9 @@ const updateProfile = async (req, res) => {
 
     if (oldPassword || newPassword || confirmPassword) {
       if (!oldPassword || !newPassword || !confirmPassword) {
-        return res
-          .status(400)
-          .json({
-            message: "All password fields are required to change password",
-          });
+        return res.status(400).json({
+          message: "All password fields are required to change password",
+        });
       }
 
       if (newPassword !== confirmPassword) {

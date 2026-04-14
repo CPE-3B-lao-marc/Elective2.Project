@@ -7,11 +7,13 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProfilePage from "./pages/ProfilePage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { AuthProvider } from "./context/AuthContext";
+import { useAuth } from "./context/useAuth";
 
 function App() {
+  const { user } = useAuth();
+
   return (
-    <AuthProvider>
+    <>
       <NavBar />
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -27,14 +29,14 @@ function App() {
           path="/profile"
           element={
             <ProtectedRoute>
-              <ProfilePage />
+              <ProfilePage user={user} />
             </ProtectedRoute>
           }
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
       </Routes>
-    </AuthProvider>
+    </>
   );
 }
 

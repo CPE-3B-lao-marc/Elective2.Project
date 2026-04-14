@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 function RegisterPage() {
   const { register, loading } = useAuth();
@@ -33,10 +33,15 @@ function RegisterPage() {
       <div className="mx-auto flex max-w-3xl flex-col gap-10 px-4 py-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl bg-white p-10 shadow-sm">
           <div className="mb-8">
-            <p className="text-sm uppercase tracking-[0.2em] text-sky-600">Create your account</p>
-            <h1 className="mt-3 text-3xl font-semibold text-slate-950">Register for Smart Commute Planner</h1>
+            <p className="text-sm uppercase tracking-[0.2em] text-sky-600">
+              Create your account
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold text-slate-950">
+              Register for Smart Commute Planner
+            </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Sign up to save favorite locations and access personalized commute routes.
+              Sign up to save favorite locations and access personalized commute
+              routes.
             </p>
           </div>
 
@@ -50,6 +55,8 @@ function RegisterPage() {
                 className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 placeholder="Choose a username"
                 required
+                minLength={3}
+                maxLength={30}
               />
             </label>
 
@@ -75,6 +82,7 @@ function RegisterPage() {
                 placeholder="Create a password"
                 minLength={6}
                 required
+                autoComplete=""
               />
             </label>
 
@@ -88,6 +96,7 @@ function RegisterPage() {
                 placeholder="Repeat your password"
                 minLength={6}
                 required
+                autoComplete=""
               />
             </label>
 
@@ -107,7 +116,14 @@ function RegisterPage() {
           </form>
 
           <p className="mt-6 text-sm text-slate-600">
-            Already registered? <Link to="/login" className="font-semibold text-sky-600 hover:text-sky-500">Sign in</Link>.
+            Already registered?{" "}
+            <Link
+              to="/login"
+              className="font-semibold text-sky-600 hover:text-sky-500"
+            >
+              Sign in
+            </Link>
+            .
           </p>
         </div>
       </div>
