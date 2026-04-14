@@ -10,6 +10,7 @@ import { AuthContext } from "./authContext";
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const checkAuth = useCallback(async () => {
@@ -106,7 +107,7 @@ export function AuthProvider({ children }) {
     newPassword,
     confirmPassword,
   }) => {
-    setLoading(true);
+    setProfileLoading(true);
     setError(null);
 
     try {
@@ -140,7 +141,7 @@ export function AuthProvider({ children }) {
       setError(updateError.message);
       throw updateError;
     } finally {
-      setLoading(false);
+      setProfileLoading(false);
     }
   };
 
@@ -165,6 +166,7 @@ export function AuthProvider({ children }) {
       value={{
         user,
         loading,
+        profileLoading,
         error,
         login,
         logout,

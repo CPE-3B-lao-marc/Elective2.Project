@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/useAuth";
 
 function ProfilePage({ user }) {
-  const { updateProfile } = useAuth();
+  const { updateProfile, profileLoading } = useAuth();
   const [username, setUsername] = useState(user?.username ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [oldPassword, setOldPassword] = useState("");
@@ -19,6 +19,33 @@ function ProfilePage({ user }) {
     setError("");
     setSuccess("");
 
+    // validate email and username formats
+    if (!usernameValue.trim()) {
+      setError("Username cannot be empty.");
+      return;
+    }
+    if (!emailValue.trim()) {
+      setError("Email cannot be empty.");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(emailValue)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    // check if any changes were made
+    if (
+      usernameValue === user?.username &&
+      emailValue === user?.email &&
+      !oldPassword &&
+      !newPassword &&
+      !confirmPassword
+    ) {
+      setError("No changes to save.");
+      return;
+    }
+
+    // Validate password fields if any of them is filled
     const updatingPassword = oldPassword || newPassword || confirmPassword;
 
     if (updatingPassword) {
@@ -162,9 +189,10 @@ function ProfilePage({ user }) {
 
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-500"
+            disabled={profileLoading}
+            className="inline-flex items-center justify-center rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            Save changes
+            {profileLoading ? "Saving..." : "Save changes"}
           </button>
         </form>
       </div>
