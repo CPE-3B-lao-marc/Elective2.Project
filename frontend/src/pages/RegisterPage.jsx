@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 
 function RegisterPage() {
-  const { register, loading } = useAuth();
+  const { register, login, loading } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -22,7 +22,8 @@ function RegisterPage() {
 
     try {
       await register({ username, email, password });
-      navigate("/login", { replace: true });
+      await login({ email, password });
+      navigate("/map"); // or another protected page
     } catch (registerError) {
       setError(registerError.message);
     }

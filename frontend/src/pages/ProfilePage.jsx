@@ -128,6 +128,7 @@ function ProfilePage({ user }) {
                   onChange={(event) => setOldPassword(event.target.value)}
                   className="mt-2 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                   placeholder="Enter current password"
+                  autoComplete=""
                 />
               </label>
 
@@ -140,6 +141,7 @@ function ProfilePage({ user }) {
                   className="mt-2 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                   placeholder="Enter new password"
                   minLength={6}
+                  autoComplete=""
                 />
               </label>
 
@@ -152,6 +154,7 @@ function ProfilePage({ user }) {
                   className="mt-2 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                   placeholder="Repeat new password"
                   minLength={6}
+                  autoComplete=""
                 />
               </label>
             </div>
