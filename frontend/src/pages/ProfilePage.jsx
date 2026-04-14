@@ -1,22 +1,18 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
+import { useAuth } from "../context/useAuth";
 
-function ProfilePage() {
-  const { user, updateProfile } = useAuth();
-  const [username, setUsername] = useState(user?.username || "");
-  const [email, setEmail] = useState(user?.email || "");
+function ProfilePage({ user }) {
+  const { updateProfile } = useAuth();
+  const [username, setUsername] = useState(user?.username ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    if (user) {
-      setUsername(user.username);
-      setEmail(user.email);
-    }
-  }, [user]);
+  const usernameValue = username ?? user?.username ?? "";
+  const emailValue = email ?? user?.email ?? "";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -64,14 +60,21 @@ function ProfilePage() {
     <main className="min-h-screen bg-slate-100 text-slate-900">
       <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mb-8 rounded-3xl bg-white p-10 shadow-sm">
-          <p className="text-sm uppercase tracking-[0.2em] text-sky-600">Account settings</p>
-          <h1 className="mt-3 text-3xl font-semibold text-slate-950">Profile</h1>
+          <p className="text-sm uppercase tracking-[0.2em] text-sky-600">
+            Account settings
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold text-slate-950">
+            Profile
+          </h1>
           <p className="mt-4 text-sm leading-7 text-slate-600">
             Update your account details and change your password securely.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid gap-6 rounded-3xl bg-white p-10 shadow-sm">
+        <form
+          onSubmit={handleSubmit}
+          className="grid gap-6 rounded-3xl bg-white p-10 shadow-sm"
+        >
           {error ? (
             <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {error}
@@ -89,7 +92,7 @@ function ProfilePage() {
               Username
               <input
                 type="text"
-                value={username}
+                value={usernameValue}
                 onChange={(event) => setUsername(event.target.value)}
                 className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 required
@@ -100,7 +103,7 @@ function ProfilePage() {
               Email
               <input
                 type="email"
-                value={email}
+                value={emailValue}
                 onChange={(event) => setEmail(event.target.value)}
                 className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 required
@@ -109,7 +112,9 @@ function ProfilePage() {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-            <h2 className="text-lg font-semibold text-slate-900">Change password</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Change password
+            </h2>
             <p className="mt-2 text-sm text-slate-600">
               Only fill these fields if you want to replace your password.
             </p>
