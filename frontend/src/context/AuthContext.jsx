@@ -8,7 +8,7 @@ import {
 
 const AuthContext = createContext(null);
 
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const apiUrl = import.meta.env.VITE_API_URL || "";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -102,7 +102,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const updateProfile = async ({ username, email, oldPassword, newPassword, confirmPassword }) => {
+  const updateProfile = async ({
+    username,
+    email,
+    oldPassword,
+    newPassword,
+    confirmPassword,
+  }) => {
     setLoading(true);
     setError(null);
 
@@ -113,7 +119,13 @@ export function AuthProvider({ children }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, email, oldPassword, newPassword, confirmPassword }),
+        body: JSON.stringify({
+          username,
+          email,
+          oldPassword,
+          newPassword,
+          confirmPassword,
+        }),
       });
 
       const data = await response.json();
@@ -153,7 +165,16 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, login, logout, checkAuth, register, updateProfile }}
+      value={{
+        user,
+        loading,
+        error,
+        login,
+        logout,
+        checkAuth,
+        register,
+        updateProfile,
+      }}
     >
       {children}
     </AuthContext.Provider>

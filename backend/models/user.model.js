@@ -37,13 +37,4 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Generate a token for the user
-userSchema.methods.generateToken = async function () {
-  // Implementation for token generation
-  // You can use libraries like jsonwebtoken to create a token
-  // Example:
-  // const token = jwt.sign({ id: this._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  // return token;
-};
-
 export const User = mongoose.model("User", userSchema);

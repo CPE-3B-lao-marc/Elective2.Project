@@ -7,34 +7,37 @@ import session from "express-session";
 import passport from "passport";
 import initializePassport from "./config/passport.js";
 import dotenv from "dotenv";
+
 dotenv.config();
+
+const isProd = process.env.NODE_ENV === "production";
+
+const app = express();
 
 initializePassport(passport);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-
 // CORS configuration, update the origin to match your frontend URL and port after deployment,
 // actual domain will be used instead of localhost
-app.use(
-  cors({ origin: "http://localhost:5173", credentials: true }),
-);
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-
 app.use(flash());
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      sameSite: "none",
-      secure: false,
+      sameSite: isProd ? "none" : "lax",
+      secure: isProd,
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
     },
   }),
 );
