@@ -258,10 +258,20 @@ function MapPage() {
             <div className="grid gap-4">
               <label className="block text-sm font-medium text-slate-700">
                 Origin
-                <Autocomplete
-                  onLoad={handleOriginLoad}
-                  onPlaceChanged={handleOriginPlaceChanged}
-                >
+                {isLoaded ? (
+                  <Autocomplete
+                    onLoad={handleOriginLoad}
+                    onPlaceChanged={handleOriginPlaceChanged}
+                  >
+                    <input
+                      type="text"
+                      value={origin}
+                      onChange={(event) => setOrigin(event.target.value)}
+                      className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                      placeholder="Enter origin address"
+                    />
+                  </Autocomplete>
+                ) : (
                   <input
                     type="text"
                     value={origin}
@@ -269,14 +279,25 @@ function MapPage() {
                     className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                     placeholder="Enter origin address"
                   />
-                </Autocomplete>
+                )}
               </label>
+
               <label className="block text-sm font-medium text-slate-700">
                 Destination
-                <Autocomplete
-                  onLoad={handleDestinationLoad}
-                  onPlaceChanged={handleDestinationPlaceChanged}
-                >
+                {isLoaded ? (
+                  <Autocomplete
+                    onLoad={handleDestinationLoad}
+                    onPlaceChanged={handleDestinationPlaceChanged}
+                  >
+                    <input
+                      type="text"
+                      value={destination}
+                      onChange={(event) => setDestination(event.target.value)}
+                      className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                      placeholder="Enter destination address"
+                    />
+                  </Autocomplete>
+                ) : (
                   <input
                     type="text"
                     value={destination}
@@ -284,7 +305,7 @@ function MapPage() {
                     className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                     placeholder="Enter destination address"
                   />
-                </Autocomplete>
+                )}
               </label>
             </div>
 
@@ -421,7 +442,7 @@ function MapPage() {
             </section>
           </aside>
 
-          <section className="rounded-3xl bg-white shadow-sm">
+          <section className="rounded-3xl bg-white shadow-sm max-h-180">
             <div
               ref={mapContainer}
               className="overflow-hidden rounded-3xl bg-slate-900"
