@@ -25,7 +25,6 @@ function MapPage() {
   const { user } = useAuth();
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
-  const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -151,13 +150,6 @@ function MapPage() {
 
   async function handleSearch(event) {
     event?.preventDefault();
-    if (!googleKey) {
-      setError(
-        "Google Maps API key is required. Add VITE_GOOGLE_MAPS_API_KEY to .env.",
-      );
-      return;
-    }
-
     setLoading(true);
     setError("");
     setRouteInfo(null);
@@ -167,12 +159,15 @@ function MapPage() {
         origin,
         destination,
         mode,
-        key: googleKey,
       });
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/directions/json?${params.toString()}`,
+        `/api/locations/directions?${params.toString()}`,
       );
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "No route could be found.");
+      }
 
       if (data.status !== "OK" || !data.routes?.length) {
         const message = data.error_message || "No route could be found.";
@@ -212,7 +207,9 @@ function MapPage() {
                 Plan your commute with Google Directions + Mapbox
               </h1>
               {user ? (
-                <p className="mt-3 text-sm text-slate-600">Welcome back, {user.username}.</p>
+                <p className="mt-3 text-sm text-slate-600">
+                  Welcome, {user.username}.
+                </p>
               ) : null}
             </div>
             <div className="rounded-2xl bg-slate-950 px-4 py-3 text-sm text-white shadow-sm">

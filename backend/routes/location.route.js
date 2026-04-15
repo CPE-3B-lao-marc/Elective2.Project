@@ -3,9 +3,13 @@ import {
   saveLocation,
   deleteLocation,
   getLocations,
+  getDirections,
 } from "../controllers/location.controller.js";
 
 const router = Router();
+
+// Directions proxy endpoint
+router.route("/directions").get(getDirections);
 
 // toggle save and delete location
 router.route("/").post(saveLocation);
