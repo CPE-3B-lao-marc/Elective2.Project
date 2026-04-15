@@ -232,7 +232,7 @@ function MapPage() {
     <main className="min-h-screen bg-slate-100 text-slate-900">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <section className="mb-6 rounded-3xl bg-white p-6 shadow-sm">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-12 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-sky-600">
                 Map Planner
@@ -245,9 +245,6 @@ function MapPage() {
                   Welcome, {user.username}.
                 </p>
               ) : null}
-            </div>
-            <div className="rounded-2xl bg-slate-950 px-4 py-3 text-sm text-white shadow-sm">
-              API mode: frontend route search
             </div>
           </div>
 
@@ -312,7 +309,7 @@ function MapPage() {
             <div className="grid gap-4">
               <fieldset className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
                 <legend className="mb-3 text-sm font-semibold text-slate-800">
-                  Transport mode
+                  Transport Mode
                 </legend>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {MODE_OPTIONS.map((option) => (
