@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/useAuth";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
 
 const MODE_OPTIONS = [
   { label: "Drive", value: "driving" },
@@ -16,6 +17,8 @@ const DEFAULT_DESTINATION = "Makati, Philippines";
 function MapPage() {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
+  const originAutocompleteRef = useRef(null);
+  const destinationAutocompleteRef = useRef(null);
   const [origin, setOrigin] = useState(DEFAULT_ORIGIN);
   const [destination, setDestination] = useState(DEFAULT_DESTINATION);
   const [mode, setMode] = useState("driving");
@@ -25,6 +28,33 @@ function MapPage() {
   const { user } = useAuth();
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: ["places"],
+  });
+
+  function handleOriginLoad(autocomplete) {
+    originAutocompleteRef.current = autocomplete;
+  }
+
+  function handleDestinationLoad(autocomplete) {
+    destinationAutocompleteRef.current = autocomplete;
+  }
+
+  function handleOriginPlaceChanged() {
+    const place = originAutocompleteRef.current?.getPlace();
+    if (!place) return;
+    const address = place.formatted_address || place.name;
+    if (address) setOrigin(address);
+  }
+
+  function handleDestinationPlaceChanged() {
+    const place = destinationAutocompleteRef.current?.getPlace();
+    if (!place) return;
+    const address = place.formatted_address || place.name;
+    if (address) setDestination(address);
+  }
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -194,6 +224,10 @@ function MapPage() {
     }
   }
 
+  if (!isLoaded) {
+    console.log("Google Maps API not loaded yet");
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -224,23 +258,33 @@ function MapPage() {
             <div className="grid gap-4">
               <label className="block text-sm font-medium text-slate-700">
                 Origin
-                <input
-                  type="text"
-                  value={origin}
-                  onChange={(event) => setOrigin(event.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-                  placeholder="Enter origin address"
-                />
+                <Autocomplete
+                  onLoad={handleOriginLoad}
+                  onPlaceChanged={handleOriginPlaceChanged}
+                >
+                  <input
+                    type="text"
+                    value={origin}
+                    onChange={(event) => setOrigin(event.target.value)}
+                    className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                    placeholder="Enter origin address"
+                  />
+                </Autocomplete>
               </label>
               <label className="block text-sm font-medium text-slate-700">
                 Destination
-                <input
-                  type="text"
-                  value={destination}
-                  onChange={(event) => setDestination(event.target.value)}
-                  className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-                  placeholder="Enter destination address"
-                />
+                <Autocomplete
+                  onLoad={handleDestinationLoad}
+                  onPlaceChanged={handleDestinationPlaceChanged}
+                >
+                  <input
+                    type="text"
+                    value={destination}
+                    onChange={(event) => setDestination(event.target.value)}
+                    className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                    placeholder="Enter destination address"
+                  />
+                </Autocomplete>
               </label>
             </div>
 
