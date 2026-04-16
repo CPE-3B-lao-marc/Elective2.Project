@@ -3,6 +3,7 @@ import { useAuth } from "../context/useAuth";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+import { FiSearch } from "react-icons/fi";
 import BottomDrawer from "../components/BottomDrawer";
 
 const MODE_OPTIONS = [
@@ -36,6 +37,19 @@ function MapPage() {
     libraries: ["places"],
   });
 
+  const inputField = (
+    <div className="relative w-full">
+      <FiSearch className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <input
+        type="search"
+        value={origin}
+        onChange={(event) => setOrigin(event.target.value)}
+        className="w-full rounded-3xl border border-slate-200 bg-white/95 py-3 pl-12 pr-4 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+        placeholder="Start from Manila or enter a new origin"
+      />
+    </div>
+  );
+
   function handleOriginLoad(autocomplete) {
     originAutocompleteRef.current = autocomplete;
   }
@@ -63,6 +77,7 @@ function MapPage() {
     if (!mapboxToken) return;
 
     mapboxgl.accessToken = mapboxToken;
+
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/streets-v12",
@@ -70,7 +85,7 @@ function MapPage() {
       zoom: 11,
     });
 
-    map.addControl(new mapboxgl.NavigationControl(), "top-right");
+    map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
 
     map.on("load", () => {
       if (!map.getSource("route")) {
@@ -238,6 +253,22 @@ function MapPage() {
 
       <div className="relative z-10">
         <BottomDrawer />
+      </div>
+
+      <div className="absolute left-1/2 top-14 xl:top-3 w-full max-w-2xl -translate-x-1/2 px-4">
+        <form
+          onSubmit={handleSearch}
+          className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-transparent p-1 shadow-xl shadow-slate-950/5 backdrop-blur-sm"
+        >
+          {inputField}
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-400"
+            disabled={loading}
+          >
+            {loading ? "Searching…" : "Search"}
+          </button>
+        </form>
       </div>
 
       {/* Control panel */}
