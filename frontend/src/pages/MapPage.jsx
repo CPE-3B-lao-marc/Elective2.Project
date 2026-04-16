@@ -230,7 +230,7 @@ function MapPage() {
   }
 
   return (
-    <main className="relative z-1 inset-0 min-h-svh bg-slate-950 text-slate-900">
+    <main className="relative inset-0 min-h-svh bg-slate-950 text-slate-900">
       <div className="absolute inset-0">
         <div ref={mapContainer} className="w-full h-full" />
       </div>

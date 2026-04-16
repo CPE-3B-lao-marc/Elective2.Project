@@ -22,11 +22,11 @@ function NavBar() {
   const closeMenu = () => setOpen(false);
 
   return (
-    <nav className="fixed z-50 top-0 w-full">
+    <nav className={`fixed top-0 ${isPlannerActive ? "" : "w-full"} z-1`}>
       <div className="relative mx-auto flex w-full max-w-7xl items-center px-4 py-3">
         {/* // Mobile menu */}
 
-        <div className={isPlannerActive ? "block z-10" : "sm:hidden"}>
+        <div className={isPlannerActive ? "block z-1" : "sm:hidden"}>
           <Hamburger toggled={isOpen} toggle={setOpen} />
 
           {isOpen && (
