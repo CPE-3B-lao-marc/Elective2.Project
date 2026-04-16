@@ -25,6 +25,7 @@ function MapPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [routeInfo, setRouteInfo] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
   const { user } = useAuth();
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
@@ -229,10 +230,16 @@ function MapPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <section className="mb-6 rounded-3xl bg-white p-6 shadow-sm">
-          <div className="mb-12 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <main className="relative z-1 inset-0 min-h-svh bg-slate-950 text-slate-900">
+      <div className="absolute inset-0">
+        <div ref={mapContainer} className="w-full h-full" />
+      </div>
+
+      {/* Control panel */}
+
+      {/* <div className="relative z-10">
+        <section className="absolute left-4 right-4 top-4 rounded-4xl bg-white/95 p-5 shadow-2xl ring-1 ring-slate-200/80 backdrop-blur-sm sm:left-6 sm:right-auto sm:w-130 lg:left-8 lg:top-19">
+          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-sky-600">
                 Map Planner
@@ -365,89 +372,82 @@ function MapPage() {
           ) : null}
         </section>
 
-        <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
-          <aside className="space-y-4">
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Route summary
-              </h2>
-              {!routeInfo ? (
-                <p className="mt-4 text-sm text-slate-600">
-                  Search for a route to see live results and directions.
-                </p>
-              ) : (
-                <div className="mt-4 space-y-3 text-sm text-slate-700">
-                  <div className="rounded-3xl bg-slate-50 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Mode
-                    </p>
-                    <p className="mt-2 text-base font-semibold text-slate-900">
-                      {mode}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl bg-slate-50 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Distance
-                    </p>
-                    <p className="mt-2 text-base font-semibold text-slate-900">
-                      {routeInfo.distance}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl bg-slate-50 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Duration
-                    </p>
-                    <p className="mt-2 text-base font-semibold text-slate-900">
-                      {routeInfo.duration}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl bg-slate-50 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      From
-                    </p>
-                    <p className="mt-2 text-sm text-slate-800">
-                      {routeInfo.startAddress}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl bg-slate-50 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      To
-                    </p>
-                    <p className="mt-2 text-sm text-slate-800">
-                      {routeInfo.endAddress}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </section>
+        
 
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Instructions
-              </h2>
-              <p className="mt-4 text-sm leading-7 text-slate-600">
-                Use your Google Maps Directions API key and Mapbox access token
-                to fetch routes and render them on the map.
+        <div className="sm:hidden absolute inset-x-4 bottom-4 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowDetails((value) => !value)}
+            className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-xl ring-1 ring-white/20 transition hover:bg-slate-800"
+          >
+            {showDetails ? "Hide details" : "View details"}
+          </button>
+        </div>
+
+        
+
+        <div
+          className={`absolute inset-x-4 bottom-4 transition-transform duration-300 ease-out sm:inset-x-auto sm:right-5 sm:w-90 lg:space-y-4 ${
+            showDetails ? "translate-y-0" : "translate-y-full"
+          } sm:translate-y-0`}
+        >
+          <section className="rounded-3xl bg-white/95 p-6 shadow-2xl ring-1 ring-slate-200/80 backdrop-blur-sm sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-900">
+              Route summary
+            </h2>
+            {!routeInfo ? (
+              <p className="mt-4 text-sm text-slate-600">
+                Search for a route to see live results and directions.
               </p>
-              <div className="mt-4 rounded-3xl bg-slate-50 p-4 text-sm text-slate-700">
-                <p className="font-semibold">Next steps</p>
-                <ul className="mt-2 list-disc space-y-2 pl-5">
-                  <li>Add authentication and saved locations next.</li>
-                  <li>Then enhance route comparison across modes.</li>
-                </ul>
+            ) : (
+              <div className="mt-4 space-y-3 text-sm text-slate-700">
+                <div className="rounded-3xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    Mode
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-slate-900">
+                    {mode}
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    Distance
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-slate-900">
+                    {routeInfo.distance}
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    Duration
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-slate-900">
+                    {routeInfo.duration}
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    From
+                  </p>
+                  <p className="mt-2 text-sm text-slate-800">
+                    {routeInfo.startAddress}
+                  </p>
+                </div>
+                <div className="rounded-3xl bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    To
+                  </p>
+                  <p className="mt-2 text-sm text-slate-800">
+                    {routeInfo.endAddress}
+                  </p>
+                </div>
               </div>
-            </section>
-          </aside>
-
-          <section className="rounded-3xl bg-white shadow-sm max-h-180">
-            <div
-              ref={mapContainer}
-              className="overflow-hidden rounded-3xl bg-slate-900"
-              style={{ minHeight: 520, height: 720 }}
-            />
+            )}
           </section>
         </div>
-      </div>
+      </div> */}
+
+      {/* Control panel */}
     </main>
   );
 }
