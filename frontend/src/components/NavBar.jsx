@@ -94,7 +94,7 @@ function NavBar() {
           className={
             isPlannerActive
               ? "hidden"
-              : "sm:flex items-center gap-2 justify-end lg:justify-center w-full"
+              : "hidden sm:flex items-center gap-2 justify-end lg:justify-center w-full"
           }
         >
           <NavLink to="/" end className={navClass}>
