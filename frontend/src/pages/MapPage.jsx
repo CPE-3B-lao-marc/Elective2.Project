@@ -3,6 +3,7 @@ import { useAuth } from "../context/useAuth";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+import BottomDrawer from "../components/BottomDrawer";
 
 const MODE_OPTIONS = [
   { label: "Drive", value: "driving" },
@@ -233,6 +234,10 @@ function MapPage() {
     <main className="relative inset-0 min-h-svh bg-slate-950 text-slate-900">
       <div className="absolute inset-0">
         <div ref={mapContainer} className="w-full h-full" />
+      </div>
+
+      <div className="relative z-10">
+        <BottomDrawer />
       </div>
 
       {/* Control panel */}
