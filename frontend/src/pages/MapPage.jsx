@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/useAuth";
+import { apiUrl } from "../context/authConfig";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
@@ -27,7 +28,9 @@ function MapPage() {
   const originAutocompleteRef = useRef(null);
   const destinationAutocompleteRef = useRef(null);
   const [origin, setOrigin] = useState(DEFAULT_ORIGIN);
+  const [originCoords, setOriginCoords] = useState(null);
   const [destination, setDestination] = useState(DEFAULT_DESTINATION);
+  const [destinationCoords, setDestinationCoords] = useState(null);
   const [mode, setMode] = useState("driving");
   const [includeTransit, setIncludeTransit] = useState(true);
   const [includeBiking, setIncludeBiking] = useState(true);
@@ -36,6 +39,11 @@ function MapPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [routeInfo, setRouteInfo] = useState(null);
+  const [savedLocations, setSavedLocations] = useState([]);
+  const [loadingSavedLocations, setLoadingSavedLocations] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
   const { user } = useAuth();
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
@@ -106,15 +114,153 @@ function MapPage() {
     const place = originAutocompleteRef.current?.getPlace();
     if (!place) return;
     const address = place.formatted_address || place.name;
+    const location = place.geometry?.location;
     if (address) setOrigin(address);
+    if (location) {
+      setOriginCoords({ lat: location.lat(), lng: location.lng() });
+    }
   }
 
   function handleDestinationPlaceChanged() {
     const place = destinationAutocompleteRef.current?.getPlace();
     if (!place) return;
     const address = place.formatted_address || place.name;
+    const location = place.geometry?.location;
     if (address) setDestination(address);
+    if (location) {
+      setDestinationCoords({ lat: location.lat(), lng: location.lng() });
+    }
   }
+
+  const loadSavedLocations = useCallback(async () => {
+    if (!user) {
+      setSavedLocations([]);
+      return;
+    }
+
+    setLoadingSavedLocations(true);
+    setSaveError("");
+    setSaveSuccess("");
+
+    try {
+      const response = await fetch(`${apiUrl}/api/locations`, {
+        credentials: "include",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to load saved locations.");
+      }
+
+      setSavedLocations(data.locations || []);
+    } catch (err) {
+      setSaveError(err.message || "Could not load saved locations.");
+    } finally {
+      setLoadingSavedLocations(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadSavedLocations();
+  }, [loadSavedLocations]);
+
+  const saveLocation = async (type) => {
+    if (!user) {
+      setSaveError("Please sign in to save locations.");
+      return;
+    }
+
+    const selectedRoute = routes[selectedRouteIndex];
+    if (!selectedRoute) {
+      setSaveError("Search a route first to save a location.");
+      return;
+    }
+
+    const selectedPlaceCoords =
+      type === "origin" ? originCoords : destinationCoords;
+    const routeCoords =
+      type === "origin"
+        ? selectedRoute.originLocation
+        : selectedRoute.destinationLocation;
+    const locationPoint = selectedPlaceCoords || routeCoords;
+
+    if (!locationPoint?.lat || !locationPoint?.lng) {
+      setSaveError("Route coordinates are required to save this location.");
+      return;
+    }
+
+    const address = type === "origin" ? origin : destination;
+    const name = `${type === "origin" ? "Origin" : "Destination"} - ${address}`;
+
+    const alreadySaved = savedLocations.some((location) => {
+      const sameCoords =
+        Math.abs(location.latitude - locationPoint.lat) < 1e-6 &&
+        Math.abs(location.longitude - locationPoint.lng) < 1e-6;
+      const sameAddress =
+        location.address?.trim().toLowerCase() === address.trim().toLowerCase();
+      return sameCoords || sameAddress;
+    });
+
+    if (alreadySaved) {
+      setSaveError("This location is already saved.");
+      console.log("Location already saved:", { name, address, locationPoint });
+      return;
+    }
+
+    setSavingLocation(true);
+    setSaveError("");
+    setSaveSuccess("");
+
+    try {
+      const response = await fetch(`${apiUrl}/api/locations`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          address,
+          latitude: locationPoint.lat,
+          longitude: locationPoint.lng,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to save location.");
+      }
+
+      setSaveSuccess("Location saved successfully.");
+      await loadSavedLocations();
+    } catch (err) {
+      setSaveError(err.message || "Could not save location.");
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
+  const deleteSavedLocation = async (id) => {
+    if (!user) return;
+
+    setSaveError("");
+    setSaveSuccess("");
+
+    try {
+      const response = await fetch(`${apiUrl}/api/locations/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to delete location.");
+      }
+
+      setSaveSuccess("Location deleted successfully.");
+      await loadSavedLocations();
+    } catch (err) {
+      setSaveError(err.message || "Could not delete saved location.");
+    }
+  };
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -523,13 +669,13 @@ function MapPage() {
 
   return (
     <main className="relative inset-0 min-h-svh bg-slate-950 text-slate-900">
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 md:right-105">
         <div ref={mapContainer} className="w-full h-full" />
       </div>
 
       <div className="relative z-10">
         <BottomDrawer>
-          <div className="space-y-6 px-4 max-w-3xl justify-center mx-auto">
+          <div className="space-y-6 px-4 max-w-3xl justify-center mx-auto mb-15">
             <div>
               <p className="text-sm uppercase tracking-[0.24em] text-sky-600">
                 Route builder
@@ -544,7 +690,7 @@ function MapPage() {
               ) : null}
             </div>
 
-            <form onSubmit={handleSearch} className="space-y-6">
+            <form onSubmit={handleSearch} className="space-y-6 mb-6">
               <div className="relative grid gap-4 pl-7">
                 <div className="absolute left-3 top-8 bottom-8 w-px border-l-2 border-dashed border-slate-300" />
 
@@ -667,6 +813,26 @@ function MapPage() {
                   Reset
                 </button>
               </div>
+              {user && routes.length ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => saveLocation("origin")}
+                    disabled={savingLocation}
+                    className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  >
+                    Save origin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => saveLocation("destination")}
+                    disabled={savingLocation}
+                    className="inline-flex items-center justify-center rounded-full bg-rose-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  >
+                    Save destination
+                  </button>
+                </div>
+              ) : null}
             </form>
 
             {error ? (
@@ -674,6 +840,89 @@ function MapPage() {
                 {error}
               </div>
             ) : null}
+
+            {user ? (
+              <section className="rounded-3xl border border-slate-200 bg-white p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      Saved locations
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Keep favorite addresses ready for your next route.
+                    </p>
+                  </div>
+                  {loadingSavedLocations ? (
+                    <p className="text-xs text-slate-500">Loading…</p>
+                  ) : null}
+                </div>
+
+                {saveError ? (
+                  <div className="mt-4 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {saveError}
+                  </div>
+                ) : null}
+
+                {saveSuccess ? (
+                  <div className="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                    {saveSuccess}
+                  </div>
+                ) : null}
+
+                {savedLocations.length ? (
+                  <div className="mt-4 space-y-3">
+                    {savedLocations.map((location) => (
+                      <div
+                        key={location._id}
+                        className="rounded-3xl border border-slate-200 bg-slate-50 p-3"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {location.name}
+                            </p>
+                            <p className="text-sm text-slate-600">
+                              {location.address}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setOrigin(location.address)}
+                              className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
+                            >
+                              Use as origin
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDestination(location.address)}
+                              className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
+                            >
+                              Use as destination
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteSavedLocation(location._id)}
+                              className="rounded-full border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-slate-500">
+                    No saved locations yet. Search a route and save one.
+                  </p>
+                )}
+              </section>
+            ) : (
+              <div className="rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+                Sign in to save favorite locations and reuse them later.
+              </div>
+            )}
 
             {routes.length ? (
               <section className="space-y-4">

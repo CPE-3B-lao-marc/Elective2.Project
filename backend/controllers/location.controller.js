@@ -3,13 +3,32 @@ import { Location } from "../models/location.model.js";
 // save a new location
 const saveLocation = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     const { name, address, latitude, longitude } = req.body;
+    const latitudeValue = parseFloat(latitude);
+    const longitudeValue = parseFloat(longitude);
+
+    if (
+      !name ||
+      !address ||
+      Number.isNaN(latitudeValue) ||
+      Number.isNaN(longitudeValue)
+    ) {
+      return res.status(400).json({
+        message:
+          "Name, address, latitude, and longitude are required to save a location",
+      });
+    }
 
     const location = new Location({
       name,
       address,
-      latitude,
-      longitude,
+      latitude: latitudeValue,
+      longitude: longitudeValue,
+      user: req.user._id,
     });
 
     await location.save();
@@ -28,9 +47,16 @@ const saveLocation = async (req, res) => {
 // delete a location by ID
 const deleteLocation = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     const { id } = req.params;
 
-    const location = await Location.findByIdAndDelete(id);
+    const location = await Location.findOneAndDelete({
+      _id: id,
+      user: req.user._id,
+    });
 
     if (!location) {
       return res.status(404).json({ message: "Location not found" });
@@ -50,7 +76,13 @@ const deleteLocation = async (req, res) => {
 // view all saved locations
 const getLocations = async (req, res) => {
   try {
-    const locations = await Location.find();
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const locations = await Location.find({ user: req.user._id }).sort({
+      createdAt: -1,
+    });
     res.status(200).json({ locations });
   } catch (error) {
     res
@@ -104,28 +136,42 @@ async function fetchWeather(latitude, longitude) {
     return null;
   }
 
+  const openWeatherKey = process.env.OPENWEATHER_API_KEY;
+  if (!openWeatherKey) {
+    return null;
+  }
+
   try {
     const params = new URLSearchParams({
-      latitude: String(latitude),
-      longitude: String(longitude),
-      current_weather: "true",
-      hourly: "precipitation_probability",
-      timezone: "auto",
+      lat: String(latitude),
+      lon: String(longitude),
+      units: "metric",
+      appid: openWeatherKey,
     });
 
     const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?${params.toString()}`,
+      `https://api.openweathermap.org/data/2.5/weather?${params.toString()}`,
     );
 
     if (!response.ok) return null;
 
     const json = await response.json();
-    const precipitationProbability = Array.isArray(json.hourly?.precipitation_probability)
-      ? json.hourly.precipitation_probability[0]
-      : 0;
+    const conditionCode = json.weather?.[0]?.id ?? 800;
+    const precipitationProbability = (() => {
+      if (conditionCode >= 200 && conditionCode < 700) {
+        return 85;
+      }
+      if (conditionCode >= 700 && conditionCode < 800) {
+        return 30;
+      }
+      if (conditionCode > 800) {
+        return json.clouds?.all ? Math.min(50, json.clouds.all) : 10;
+      }
+      return 0;
+    })();
 
     return {
-      current: json.current_weather,
+      current: json,
       precipitationProbability,
     };
   } catch {
@@ -143,27 +189,33 @@ function buildWeatherImpact(weather, mode) {
     };
   }
 
-  const code = weather.current.weathercode || 0;
+  const condition = weather.current.weather?.[0] || {};
+  const code = condition.id ?? 800;
   const chance = weather.precipitationProbability ?? 0;
-  const isWet = chance >= 30 || [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code);
   let icon = "☀️";
   let text = "Clear conditions";
   let delayMinutes = 0;
 
-  if (isWet) {
+  if (code >= 200 && code < 700) {
     icon = "⚠️";
     text = `Wet weather likely (${chance}% chance)`;
     delayMinutes = mode === "walking" || mode === "bicycling" ? 12 : 6;
-  } else if (code >= 1 && code <= 3) {
-    icon = "⛅";
-    text = "Partly cloudy";
-  } else if (code >= 45 && code <= 48) {
+  } else if (code >= 700 && code < 800) {
     icon = "🌫️";
     text = "Foggy conditions";
     delayMinutes = 3;
+  } else if (code === 800) {
+    icon = "☀️";
+    text = "Clear conditions";
+  } else if (code >= 801 && code <= 803) {
+    icon = "⛅";
+    text = "Partly cloudy";
+  } else if (code === 804) {
+    icon = "☁️";
+    text = "Overcast";
   }
 
-  const safetyPenalty = (mode === "walking" || mode === "bicycling") ? 20 : 0;
+  const safetyPenalty = mode === "walking" || mode === "bicycling" ? 20 : 0;
 
   return {
     icon,
@@ -176,7 +228,10 @@ function buildWeatherImpact(weather, mode) {
 function buildTrafficImpact(leg, mode) {
   const duration = leg.duration?.value || 0;
   const trafficDuration = leg.duration_in_traffic?.value || duration;
-  const extraMinutes = Math.max(0, Math.round((trafficDuration - duration) / 60));
+  const extraMinutes = Math.max(
+    0,
+    Math.round((trafficDuration - duration) / 60),
+  );
   const ratio = duration > 0 ? trafficDuration / duration : 1;
   let icon = "🚦";
   let text = "Light traffic";
@@ -202,7 +257,9 @@ function buildTrafficImpact(leg, mode) {
     text,
     delayMinutes: extraMinutes,
     severity,
-    score: extraMinutes + (severity === "Heavy" ? 20 : severity === "Moderate" ? 10 : 0),
+    score:
+      extraMinutes +
+      (severity === "Heavy" ? 20 : severity === "Moderate" ? 10 : 0),
   };
 }
 
@@ -220,7 +277,9 @@ function formatCostEffort(route, mode) {
       (step) => step.travel_mode === "TRANSIT",
     )?.length;
 
-    return transfers ? `${transfers} transfer${transfers > 1 ? "s" : ""}` : "Transit route";
+    return transfers
+      ? `${transfers} transfer${transfers > 1 ? "s" : ""}`
+      : "Transit route";
   }
 
   if (mode === "walking") {
@@ -236,10 +295,18 @@ function formatCostEffort(route, mode) {
 
 function chooseRouteLabels(routeInfos) {
   const labels = new Map();
-  const byDuration = [...routeInfos].sort((a, b) => a.durationValue - b.durationValue);
-  const byDistance = [...routeInfos].sort((a, b) => a.distanceValue - b.distanceValue);
-  const bySafety = [...routeInfos].sort((a, b) => a.weatherScore - b.weatherScore);
-  const byTraffic = [...routeInfos].sort((a, b) => a.trafficScore - b.trafficScore);
+  const byDuration = [...routeInfos].sort(
+    (a, b) => a.durationValue - b.durationValue,
+  );
+  const byDistance = [...routeInfos].sort(
+    (a, b) => a.distanceValue - b.distanceValue,
+  );
+  const bySafety = [...routeInfos].sort(
+    (a, b) => a.weatherScore - b.weatherScore,
+  );
+  const byTraffic = [...routeInfos].sort(
+    (a, b) => a.trafficScore - b.trafficScore,
+  );
 
   if (byDuration[0]) labels.set(byDuration[0].id, "Fastest");
   if (byDistance[0]) {
@@ -287,6 +354,13 @@ const getDirections = async (req, res) => {
         .json({ message: "Google Maps API key is not configured." });
     }
 
+    const openWeatherKey = process.env.OPENWEATHER_API_KEY;
+    if (!openWeatherKey) {
+      return res
+        .status(500)
+        .json({ message: "OpenWeather API key is not configured." });
+    }
+
     const params = new URLSearchParams({
       origin,
       destination,
@@ -315,12 +389,14 @@ const getDirections = async (req, res) => {
 
     const routeInfos = data.routes.slice(0, 3).map((route, index) => {
       const leg = route.legs?.[0] || {};
-      const durationValue = leg.duration_in_traffic?.value || leg.duration?.value || 0;
+      const durationValue =
+        leg.duration_in_traffic?.value || leg.duration?.value || 0;
       const distanceValue = leg.distance?.value || 0;
-      const durationText = leg.duration_in_traffic?.text || leg.duration?.text || "Unknown";
-      const coordinates = decodePolyline(route.overview_polyline?.points || "").map(
-        (point) => [point.lng, point.lat],
-      );
+      const durationText =
+        leg.duration_in_traffic?.text || leg.duration?.text || "Unknown";
+      const coordinates = decodePolyline(
+        route.overview_polyline?.points || "",
+      ).map((point) => [point.lng, point.lat]);
       const trafficImpact = buildTrafficImpact(leg, mode);
 
       return {

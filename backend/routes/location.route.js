@@ -1,4 +1,5 @@
 import { Router } from "express";
+import isAuthenticated from "../middleware/isAuthenticated.js";
 import {
   saveLocation,
   deleteLocation,
@@ -11,9 +12,11 @@ const router = Router();
 // Directions proxy endpoint
 router.route("/directions").get(getDirections);
 
-// toggle save and delete location
-router.route("/").post(saveLocation);
-router.route("/:id").delete(deleteLocation);
-router.route("/").get(getLocations);
+// authenticated saved locations endpoints
+router
+  .route("/")
+  .post(isAuthenticated, saveLocation)
+  .get(isAuthenticated, getLocations);
+router.route("/:id").delete(isAuthenticated, deleteLocation);
 
 export default router;
