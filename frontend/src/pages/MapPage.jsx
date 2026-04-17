@@ -4,7 +4,14 @@ import { apiUrl } from "../context/authConfig";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
-import { FiSearch, FiMapPin } from "react-icons/fi";
+import {
+  FiSearch,
+  FiMapPin,
+  FiArrowUpRight,
+  FiArrowDownLeft,
+  FiTrash2,
+  FiX,
+} from "react-icons/fi";
 import { FaCar, FaBus, FaBicycle, FaWalking } from "react-icons/fa";
 import BottomDrawer from "../components/BottomDrawer";
 
@@ -28,8 +35,10 @@ function MapPage() {
   const originAutocompleteRef = useRef(null);
   const destinationAutocompleteRef = useRef(null);
   const [origin, setOrigin] = useState(DEFAULT_ORIGIN);
+  const [originName, setOriginName] = useState(undefined);
   const [originCoords, setOriginCoords] = useState(null);
   const [destination, setDestination] = useState(DEFAULT_DESTINATION);
+  const [destinationName, setDestinationName] = useState(undefined);
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [mode, setMode] = useState("driving");
   const [includeTransit, setIncludeTransit] = useState(true);
@@ -44,6 +53,7 @@ function MapPage() {
   const [savingLocation, setSavingLocation] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState("");
+  const [isSavedLocationsOpen, setIsSavedLocationsOpen] = useState(false);
   const { user } = useAuth();
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
@@ -53,54 +63,80 @@ function MapPage() {
     libraries: ["places"],
   });
 
+  const PREVIEW_LOCATION_COUNT = 4;
+  const previewSavedLocations = savedLocations.slice(0, PREVIEW_LOCATION_COUNT);
+
   const sharedInputClass =
     "mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100";
+  const clearableInputClass = `${sharedInputClass} pr-11`;
+  const clearButtonClass =
+    "absolute right-3 top-[57%] -translate-y-1/2 rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800";
 
-  const originInput = isLoaded ? (
-    <Autocomplete
-      onLoad={handleOriginLoad}
-      onPlaceChanged={handleOriginPlaceChanged}
-    >
-      <input
-        type="text"
-        value={origin}
-        onChange={(event) => setOrigin(event.target.value)}
-        className={sharedInputClass}
-        placeholder="Enter origin address"
-      />
-    </Autocomplete>
-  ) : (
-    <input
-      type="text"
-      value={origin}
-      onChange={(event) => setOrigin(event.target.value)}
-      className={sharedInputClass}
-      placeholder="Enter origin address"
-    />
+  const renderClearButton = (value, onClear, label) =>
+    value ? (
+      <button
+        type="button"
+        onClick={onClear}
+        className={clearButtonClass}
+        aria-label={`Clear ${label}`}
+        title={`Clear ${label}`}
+      >
+        <FiX className="h-4 w-4" />
+      </button>
+    ) : null;
+
+  const renderLocationInput = ({
+    value,
+    onChange,
+    placeholder,
+    onClear,
+    label,
+    onLoad,
+    onPlaceChanged,
+  }) => (
+    <div className="relative">
+      {isLoaded ? (
+        <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
+          <input
+            type="text"
+            value={value}
+            onChange={onChange}
+            className={clearableInputClass}
+            placeholder={placeholder}
+          />
+        </Autocomplete>
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={onChange}
+          className={clearableInputClass}
+          placeholder={placeholder}
+        />
+      )}
+      {renderClearButton(value, onClear, label)}
+    </div>
   );
 
-  const destinationInput = isLoaded ? (
-    <Autocomplete
-      onLoad={handleDestinationLoad}
-      onPlaceChanged={handleDestinationPlaceChanged}
-    >
-      <input
-        type="text"
-        value={destination}
-        onChange={(event) => setDestination(event.target.value)}
-        className={sharedInputClass}
-        placeholder="Enter destination address"
-      />
-    </Autocomplete>
-  ) : (
-    <input
-      type="text"
-      value={destination}
-      onChange={(event) => setDestination(event.target.value)}
-      className={sharedInputClass}
-      placeholder="Enter destination address"
-    />
-  );
+  const originInput = renderLocationInput({
+    value: origin,
+    onChange: (event) => setOrigin(event.target.value),
+    placeholder: "Enter origin address",
+    onClear: () => setOrigin(""),
+    label: "origin",
+    onLoad: handleOriginLoad,
+    onPlaceChanged: handleOriginPlaceChanged,
+  });
+
+  const destinationInput = renderLocationInput({
+    value: destination,
+    onChange: (event) => setDestination(event.target.value),
+    placeholder: "Enter destination address",
+    onClear: () => setDestination(""),
+    label: "destination",
+    onLoad: handleDestinationLoad,
+    onPlaceChanged: handleDestinationPlaceChanged,
+  });
 
   function handleOriginLoad(autocomplete) {
     originAutocompleteRef.current = autocomplete;
@@ -112,7 +148,11 @@ function MapPage() {
 
   function handleOriginPlaceChanged() {
     const place = originAutocompleteRef.current?.getPlace();
+    console.log("Origin place changed:", place);
+
     if (!place) return;
+    setOriginName(place.name || place.formatted_address || "");
+
     const address = place.formatted_address || place.name;
     const location = place.geometry?.location;
     if (address) setOrigin(address);
@@ -123,7 +163,11 @@ function MapPage() {
 
   function handleDestinationPlaceChanged() {
     const place = destinationAutocompleteRef.current?.getPlace();
+    console.log("Selected destination place:", place);
+
     if (!place) return;
+    setDestinationName(place.name || place.formatted_address || "");
+
     const address = place.formatted_address || place.name;
     const location = place.geometry?.location;
     if (address) setDestination(address);
@@ -190,7 +234,7 @@ function MapPage() {
     }
 
     const address = type === "origin" ? origin : destination;
-    const name = `${type === "origin" ? "Origin" : "Destination"} - ${address}`;
+    const name = `${type === "origin" ? originName : destinationName}`;
 
     const alreadySaved = savedLocations.some((location) => {
       const sameCoords =
@@ -681,18 +725,21 @@ function MapPage() {
                 Route builder
               </p>
               <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-                Plan your trip
+                Plan your Trip
               </h2>
               {user ? (
                 <p className="mt-2 text-sm text-slate-600">
-                  Welcome back, {user.username}.
+                  Welcome,{" "}
+                  <span className="font-bold text-sky-600">
+                    {user.username}
+                  </span>
                 </p>
               ) : null}
             </div>
 
             <form onSubmit={handleSearch} className="space-y-6 mb-6">
               <div className="relative grid gap-4 pl-7">
-                <div className="absolute left-3 top-8 bottom-8 w-px border-l-2 border-dashed border-slate-300" />
+                <div className="absolute left-3 top-8 bottom-8 w-px border-l-4 border-dashed border-slate-300" />
 
                 <div className="flex items-start gap-3">
                   <div className="mt-1 flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
@@ -870,48 +917,169 @@ function MapPage() {
                 ) : null}
 
                 {savedLocations.length ? (
-                  <div className="mt-4 space-y-3">
-                    {savedLocations.map((location) => (
-                      <div
-                        key={location._id}
-                        className="rounded-3xl border border-slate-200 bg-slate-50 p-3"
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900">
-                              {location.name}
-                            </p>
-                            <p className="text-sm text-slate-600">
-                              {location.address}
-                            </p>
+                  <>
+                    <div className="mt-4 space-y-3">
+                      {previewSavedLocations.map((location) => (
+                        <div
+                          key={location._id}
+                          className="rounded-3xl border border-slate-200 bg-slate-50 p-3"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <p
+                                className="truncate text-sm font-semibold text-slate-900"
+                                title={location.name}
+                              >
+                                {location.name}
+                              </p>
+                              <p
+                                className="truncate text-sm text-slate-600"
+                                title={location.address}
+                              >
+                                {location.address}
+                              </p>
+                            </div>
+                            <div className="grid gap-2 grid-cols-1 min-w-27">
+                              <button
+                                type="button"
+                                onClick={() => setOrigin(location.address)}
+                                className="w-full min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
+                                title="Use as origin"
+                                aria-label="Set as origin"
+                              >
+                                <FiArrowUpRight className="h-4 w-4" />
+                                Origin
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDestination(location.address)}
+                                className="min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
+                                title="Use as destination"
+                                aria-label="Set as destination"
+                              >
+                                <FiArrowDownLeft className="h-4 w-4" />
+                                Destination
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  deleteSavedLocation(location._id)
+                                }
+                                className="min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                                title="Delete saved location"
+                                aria-label="Delete saved location"
+                              >
+                                <FiTrash2 className="h-4 w-4" />
+                                Delete
+                              </button>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-3 gap-2">
+                        </div>
+                      ))}
+                    </div>
+
+                    {savedLocations.length > PREVIEW_LOCATION_COUNT ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsSavedLocationsOpen(true)}
+                        className="mt-4 inline-flex w-full items-center justify-center rounded-full border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                      >
+                        View all {savedLocations.length} saved locations
+                      </button>
+                    ) : null}
+
+                    {isSavedLocationsOpen ? (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
+                        <div className="w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+                          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                            <div>
+                              <h3 className="text-lg font-semibold text-slate-900">
+                                All saved locations
+                              </h3>
+                              <p className="text-sm text-slate-500">
+                                {savedLocations.length} saved locations
+                              </p>
+                            </div>
                             <button
                               type="button"
-                              onClick={() => setOrigin(location.address)}
-                              className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
+                              onClick={() => setIsSavedLocationsOpen(false)}
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
+                              aria-label="Close saved locations list"
                             >
-                              Use as origin
+                              <FiX className="h-5 w-5" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => setDestination(location.address)}
-                              className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
-                            >
-                              Use as destination
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deleteSavedLocation(location._id)}
-                              className="rounded-full border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
-                            >
-                              Delete
-                            </button>
+                          </div>
+                          <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
+                            <div className="space-y-3">
+                              {savedLocations.map((location) => (
+                                <div
+                                  key={location._id}
+                                  className="rounded-3xl border border-slate-200 bg-slate-50 p-3"
+                                >
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                      <p
+                                        className="truncate text-sm font-semibold text-slate-900"
+                                        title={location.name}
+                                      >
+                                        {location.name}
+                                      </p>
+                                      <p
+                                        className="truncate text-sm text-slate-600"
+                                        title={location.address}
+                                      >
+                                        {location.address}
+                                      </p>
+                                    </div>
+                                    <div className="grid gap-2 grid-cols-1 min-w-27">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOrigin(location.address);
+                                          setIsSavedLocationsOpen(false);
+                                        }}
+                                        className="w-full min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
+                                        title="Use as origin"
+                                        aria-label="Set as origin"
+                                      >
+                                        <FiArrowUpRight className="h-4 w-4" />
+                                        Origin
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setDestination(location.address);
+                                          setIsSavedLocationsOpen(false);
+                                        }}
+                                        className="min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400"
+                                        title="Use as destination"
+                                        aria-label="Set as destination"
+                                      >
+                                        <FiArrowDownLeft className="h-4 w-4" />
+                                        Destination
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          deleteSavedLocation(location._id)
+                                        }
+                                        className="min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                                        title="Delete saved location"
+                                        aria-label="Delete saved location"
+                                      >
+                                        <FiTrash2 className="h-4 w-4" />
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    ) : null}
+                  </>
                 ) : (
                   <p className="mt-4 text-sm text-slate-500">
                     No saved locations yet. Search a route and save one.
