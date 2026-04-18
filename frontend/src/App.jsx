@@ -1,8 +1,8 @@
 import "./App.css";
 import { Route, Routes } from "react-router-dom";
 import NavBar from "./components/NavBar";
-import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage";
+import AboutPage from "./pages/AboutPage";
 import MapPage from "./pages/MapPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -18,6 +18,7 @@ function App() {
       <NavBar />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route
           path="/map"
           element={

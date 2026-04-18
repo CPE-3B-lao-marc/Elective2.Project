@@ -74,6 +74,9 @@ function NavBar() {
                 <NavLink to="/map" className={navClass} onClick={closeMenu}>
                   Planner
                 </NavLink>
+                <NavLink to="/about" className={navClass} onClick={closeMenu}>
+                  About
+                </NavLink>
                 {user ? (
                   <>
                     <NavLink
@@ -144,6 +147,9 @@ function NavBar() {
           </NavLink>
           <NavLink to="/map" className={navClass}>
             Planner
+          </NavLink>
+          <NavLink to="/about" className={navClass}>
+            About
           </NavLink>
           {user ? (
             <>
