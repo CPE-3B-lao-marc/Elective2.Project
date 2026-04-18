@@ -1,7 +1,7 @@
 import { NavLink, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { Spin as Hamburger } from "hamburger-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function NavBar() {
   const { user, logout } = useAuth();
@@ -20,6 +20,17 @@ function NavBar() {
     "rounded-full border border-black/20 bg-white/5 px-4 py-2 text-sm font-medium text-black transition hover:bg-black/10 hover:cursor-pointer";
 
   const closeMenu = () => setOpen(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 640 && isOpen) {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isOpen]);
 
   return (
     <nav className={`fixed top-0 ${isPlannerActive ? "" : "w-full"} z-50`}>
