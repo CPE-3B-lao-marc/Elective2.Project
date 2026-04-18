@@ -783,7 +783,7 @@ function MapPage() {
       </div>
 
       {/* // UI overlay */}
-      <div className="relative z-10">
+      <div className="relative z-50">
         {/* // Route builder drawer */}
         <BottomDrawer>
           <div className="space-y-6 px-4 max-w-3xl justify-center mx-auto mb-15">
@@ -1274,7 +1274,7 @@ function MapPage() {
                                 {location.address}
                               </p>
                             </div>
-                            <div className="grid gap-2 grid-cols-2 min-w-27">
+                            <div className="grid gap-2 min-w-27">
                               <button
                                 type="button"
                                 onClick={() => setOrigin(location.address)}
@@ -1300,7 +1300,7 @@ function MapPage() {
                                 onClick={() =>
                                   deleteSavedLocation(location._id)
                                 }
-                                className="col-span-2 min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                                className="min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
                                 title="Delete saved location"
                                 aria-label="Delete saved location"
                               >
@@ -1324,7 +1324,7 @@ function MapPage() {
                     ) : null}
 
                     {isSavedLocationsOpen ? (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
+                      <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/60 px-4 py-6">
                         <div className="w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
                           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                             <div>
@@ -1366,7 +1366,7 @@ function MapPage() {
                                         {location.address}
                                       </p>
                                     </div>
-                                    <div className="grid gap-2 grid-cols-2 min-w-27">
+                                    <div className="grid gap-2 min-w-27">
                                       <button
                                         type="button"
                                         onClick={() => {
@@ -1398,7 +1398,7 @@ function MapPage() {
                                         onClick={() =>
                                           deleteSavedLocation(location._id)
                                         }
-                                        className="col-span-2 min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                                        className="min-w-0 inline-flex items-center justify-center gap-2 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
                                         title="Delete saved location"
                                         aria-label="Delete saved location"
                                       >

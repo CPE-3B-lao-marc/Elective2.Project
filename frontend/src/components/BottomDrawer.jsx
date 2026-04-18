@@ -82,7 +82,7 @@ function BottomDrawer({ children }) {
         style={{ width: `${sidebarWidth}px` }}
       >
         <div
-          className="absolute z-10 left-0 top-0 h-full w-6 cursor-ew-resize bg-slate-100 hover:bg-slate-200 flex items-center justify-center"
+          className="absolute z-10 left-0 top-0 h-full w-6 cursor-ew-resize bg-slate-200 hover:bg-slate-200 flex items-center justify-center"
           onPointerDown={handleSidebarDragStart}
           onPointerMove={handleSidebarDragMove}
           onPointerUp={handleSidebarDragEnd}
@@ -102,31 +102,31 @@ function BottomDrawer({ children }) {
         <>
           {/* // Backdrop to close the drawer when clicking outside of it */}
           <div
-            className="fixed inset-0 z-30 bg-slate-950/30 md:hidden"
+            className="fixed inset-0 z-50 bg-slate-950/30 md:hidden"
             onClick={() => setIsOpen(false)}
           />
           <div
-            className="fixed bottom-0 left-0 right-0 z-40 w-full overflow-hidden rounded-t-3xl bg-white/95 shadow-2xl shadow-slate-950/20 outline-none backdrop-blur-xl md:hidden"
+            className="fixed bottom-0 left-0 right-0 z-60 w-full overflow-hidden rounded-t-3xl bg-white/95 shadow-2xl shadow-slate-950/20 outline-none backdrop-blur-xl md:hidden"
             style={{ height: `${sheetHeight}vh` }}
           >
             <div className="mx-auto mb-4 flex items-center justify-center">
               <div
-                className="flex h-10 w-20 items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 cursor-row-resize"
+                className="flex h-6 w-20 items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 cursor-row-resize"
                 onPointerDown={handleSheetDragStart}
                 onPointerMove={handleSheetDragMove}
                 onPointerUp={handleSheetDragEnd}
                 style={{ touchAction: "none" }}
               >
-                <FiMove className="h-5 w-5 text-slate-600" />
+                <FiMove className="h-4 w-5 text-slate-600" />
               </div>
             </div>
             <div className="relative flex h-full flex-col">
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
+                className="absolute z-10 right-3 -top-8 inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-200 text-slate-100 transition hover:bg-red-500 hover:cursor-pointer"
               >
-                <FiX className="h-5 w-5" />
+                <FiX className="h-6 w-6" />
               </button>
               <div
                 className="flex-1 min-h-0 overflow-y-auto pr-1"

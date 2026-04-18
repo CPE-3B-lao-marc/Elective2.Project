@@ -8,6 +8,12 @@ function NavBar() {
   const [isOpen, setOpen] = useState(false);
   const location = useLocation();
   const isPlannerActive = location.pathname === "/map";
+  const [zIndex, setZIndex] = useState(() => {
+    if (typeof window === "undefined") {
+      return "z-50";
+    }
+    return window.innerWidth >= 640 && isPlannerActive ? "z-60" : "z-50";
+  });
 
   const navClass = ({ isActive }) =>
     `rounded-full px-4 py-2 text-sm font-medium transition ${
@@ -21,6 +27,8 @@ function NavBar() {
 
   const closeMenu = () => setOpen(false);
 
+  //
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 640 && isOpen) {
@@ -28,16 +36,28 @@ function NavBar() {
       }
     };
 
+    const handleZIndex = () => {
+      if (window.innerWidth >= 640 && isPlannerActive) {
+        setZIndex("z-60");
+      } else {
+        setZIndex("z-50");
+      }
+    };
+
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isOpen]);
+    window.addEventListener("resize", handleZIndex);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", handleZIndex);
+    };
+  }, [isOpen, isPlannerActive, zIndex]);
 
   return (
-    <nav className={`fixed top-0 ${isPlannerActive ? "" : "w-full"} z-50`}>
+    <nav className={`fixed top-0 ${isPlannerActive ? "" : "w-full"} ${zIndex}`}>
       <div className="relative mx-auto flex w-full max-w-7xl items-center px-4 py-3">
         {/* // Mobile menu */}
 
-        <div className={isPlannerActive ? "block z-1" : "sm:hidden"}>
+        <div className={isPlannerActive ? "block z-10" : "sm:hidden"}>
           <Hamburger toggled={isOpen} toggle={setOpen} />
 
           {isOpen && (
