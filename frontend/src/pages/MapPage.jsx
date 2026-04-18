@@ -1117,111 +1117,6 @@ function MapPage() {
               </div>
             ) : null}
 
-            {/* // Show route comparisons only if there are routes to compare */}
-            {routes.length ? (
-              <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Route comparisons
-                  </h3>
-                  <p className="text-sm text-slate-500">
-                    Tap a card to highlight a route on the map.
-                  </p>
-                </div>
-                <div className="grid gap-4">
-                  {routes.map((route, index) => (
-                    <button
-                      key={route.id}
-                      type="button"
-                      onClick={() => setSelectedRouteIndex(index)}
-                      className={`w-full text-left rounded-3xl border p-4 transition ${
-                        selectedRouteIndex === index
-                          ? "border-sky-500 bg-slate-100"
-                          : "border-slate-200 bg-white hover:border-slate-400"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                            {route.label || `Route ${index + 1}`}
-                          </p>
-                          <p className="mt-1 text-lg font-semibold text-slate-900">
-                            {route.durationText} · {route.distanceText}
-                          </p>
-                        </div>
-                        <div className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
-                          {route.modeLabel}
-                        </div>
-                      </div>
-
-                      {/* // Show key route details in a grid below the main info */}
-                      <div className="mt-4 grid gap-3 grid-cols-2 text-sm text-slate-700">
-                        <div className="rounded-3xl bg-slate-50 p-3">
-                          <p className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-500">
-                            ETA
-                          </p>
-                          <p className="mt-2 font-semibold text-slate-900">
-                            {route.durationText}
-                          </p>
-                        </div>
-                        <div className="rounded-3xl bg-slate-50 p-3">
-                          <p className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-500">
-                            Weather
-                          </p>
-                          <p className="mt-2 font-semibold text-slate-900">
-                            {route.weatherImpact?.icon || "☀️"}{" "}
-                            {route.weatherImpact?.text || "No issues"}
-                          </p>
-                        </div>
-                        <div className="rounded-3xl bg-slate-50 p-3">
-                          <p className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-500">
-                            Traffic
-                          </p>
-                          <p className="mt-2 font-semibold text-slate-900">
-                            {route.trafficImpact?.icon || "🚦"}{" "}
-                            {route.trafficImpact?.text || "Light traffic"}
-                          </p>
-                        </div>
-                        <div className="rounded-3xl bg-slate-50 p-3">
-                          <p className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-500">
-                            Cost / Effort
-                          </p>
-                          <p className="mt-2 font-semibold text-slate-900">
-                            {route.fareText ||
-                              route.costEffort ||
-                              "Standard route"}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                <section className="rounded-3xl border border-slate-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Traffic severity legend
-                  </h3>
-                  <div className="mt-4 grid gap-3 grid-cols-2 text-sm text-slate-700">
-                    <div className="flex items-center gap-2 rounded-3xl bg-slate-50 px-3 py-3">
-                      <span className="h-3 w-3 rounded-full bg-emerald-500" />
-                      <span>Light traffic</span>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-3xl bg-slate-50 px-3 py-3">
-                      <span className="h-3 w-3 rounded-full bg-cyan-500" />
-                      <span>Normal</span>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-3xl bg-slate-50 px-3 py-3">
-                      <span className="h-3 w-3 rounded-full bg-orange-500" />
-                      <span>Moderate</span>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-3xl bg-slate-50 px-3 py-3">
-                      <span className="h-3 w-3 rounded-full bg-red-500" />
-                      <span>Heavy</span>
-                    </div>
-                  </div>
-                </section>
-              </section>
-            ) : null}
-
             {/* // Show saved locations and management options only if user is logged in */}
             {user ? (
               <section className="rounded-3xl border border-slate-200 bg-white p-4">
@@ -1426,6 +1321,111 @@ function MapPage() {
                 Sign in to save favorite locations and reuse them later.
               </div>
             )}
+
+            {/* // Show route comparisons only if there are routes to compare */}
+            {routes.length ? (
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Route comparisons
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Tap a card to highlight a route on the map.
+                  </p>
+                </div>
+                <div className="grid gap-4">
+                  {routes.map((route, index) => (
+                    <button
+                      key={route.id}
+                      type="button"
+                      onClick={() => setSelectedRouteIndex(index)}
+                      className={`w-full text-left rounded-3xl border p-4 transition ${
+                        selectedRouteIndex === index
+                          ? "border-sky-500 bg-slate-100"
+                          : "border-slate-200 bg-white hover:border-slate-400"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                            {route.label || `Route ${index + 1}`}
+                          </p>
+                          <p className="mt-1 text-lg font-semibold text-slate-900">
+                            {route.durationText} · {route.distanceText}
+                          </p>
+                        </div>
+                        <div className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
+                          {route.modeLabel}
+                        </div>
+                      </div>
+
+                      {/* // Show key route details in a grid below the main info */}
+                      <div className="mt-4 grid gap-3 grid-cols-2 text-sm text-slate-700">
+                        <div className="rounded-3xl bg-slate-50 p-3">
+                          <p className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-500">
+                            ETA
+                          </p>
+                          <p className="mt-2 font-semibold text-slate-900">
+                            {route.durationText}
+                          </p>
+                        </div>
+                        <div className="rounded-3xl bg-slate-50 p-3">
+                          <p className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-500">
+                            Weather
+                          </p>
+                          <p className="mt-2 font-semibold text-slate-900">
+                            {route.weatherImpact?.icon || "☀️"}{" "}
+                            {route.weatherImpact?.text || "No issues"}
+                          </p>
+                        </div>
+                        <div className="rounded-3xl bg-slate-50 p-3">
+                          <p className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-500">
+                            Traffic
+                          </p>
+                          <p className="mt-2 font-semibold text-slate-900">
+                            {route.trafficImpact?.icon || "🚦"}{" "}
+                            {route.trafficImpact?.text || "Light traffic"}
+                          </p>
+                        </div>
+                        <div className="rounded-3xl bg-slate-50 p-3">
+                          <p className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-500">
+                            Cost / Effort
+                          </p>
+                          <p className="mt-2 font-semibold text-slate-900">
+                            {route.fareText ||
+                              route.costEffort ||
+                              "Standard route"}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <section className="rounded-3xl border border-slate-200 bg-white p-4">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Traffic severity legend
+                  </h3>
+                  <div className="mt-4 grid gap-3 grid-cols-2 text-sm text-slate-700">
+                    <div className="flex items-center gap-2 rounded-3xl bg-slate-50 px-3 py-3">
+                      <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                      <span>Light traffic</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-3xl bg-slate-50 px-3 py-3">
+                      <span className="h-3 w-3 rounded-full bg-cyan-500" />
+                      <span>Normal</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-3xl bg-slate-50 px-3 py-3">
+                      <span className="h-3 w-3 rounded-full bg-orange-500" />
+                      <span>Moderate</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-3xl bg-slate-50 px-3 py-3">
+                      <span className="h-3 w-3 rounded-full bg-red-500" />
+                      <span>Heavy</span>
+                    </div>
+                  </div>
+                </section>
+              </section>
+            ) : null}
           </div>
         </BottomDrawer>
       </div>
