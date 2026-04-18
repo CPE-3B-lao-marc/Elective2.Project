@@ -777,11 +777,14 @@ function MapPage() {
 
   return (
     <main className="relative inset-0 min-h-svh bg-slate-950 text-slate-900">
+      {/* // Map container */}
       <div className="absolute inset-0 md:right-105">
         <div ref={mapContainer} className="w-full h-full" />
       </div>
 
+      {/* // UI overlay */}
       <div className="relative z-10">
+        {/* // Route builder drawer */}
         <BottomDrawer>
           <div className="space-y-6 px-4 max-w-3xl justify-center mx-auto mb-15">
             <div>

@@ -100,6 +100,7 @@ function BottomDrawer({ children }) {
 
       {isOpen ? (
         <>
+          {/* // Backdrop to close the drawer when clicking outside of it */}
           <div
             className="fixed inset-0 z-30 bg-slate-950/30 md:hidden"
             onClick={() => setIsOpen(false)}
