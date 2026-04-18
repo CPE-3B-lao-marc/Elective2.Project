@@ -26,6 +26,7 @@ const ROUTE_COLORS = ["#2563eb", "#10b981", "#f59e0b", "#f97316"];
 
 const DEFAULT_ORIGIN = "Manila, Philippines";
 const DEFAULT_DESTINATION = "Makati, Philippines";
+const CURRENT_LOCATION_ORIGIN_LABEL = "Current location";
 
 function MapPage() {
   const mapContainer = useRef(null);
@@ -63,9 +64,106 @@ function MapPage() {
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState("");
   const [isSavedLocationsOpen, setIsSavedLocationsOpen] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("idle");
+  const [locationError, setLocationError] = useState("");
+  const [isOriginCurrentLocation, setIsOriginCurrentLocation] = useState(false);
+  const userLocationMarkerRef = useRef(null);
   const { user } = useAuth();
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
+
+  const updateCurrentLocationMarker = useCallback((location) => {
+    const map = mapRef.current;
+    if (!map || !location) return;
+
+    if (userLocationMarkerRef.current) {
+      userLocationMarkerRef.current.remove();
+      userLocationMarkerRef.current = null;
+    }
+
+    const locationEl = document.createElement("div");
+    locationEl.style.backgroundColor = "#2563eb";
+    locationEl.style.border = "2px solid #fff";
+    locationEl.style.borderRadius = "50%";
+    locationEl.style.boxShadow = "0 0 10px rgba(37, 99, 235, 0.35)";
+    locationEl.style.width = "28px";
+    locationEl.style.height = "28px";
+    locationEl.style.display = "flex";
+    locationEl.style.alignItems = "center";
+    locationEl.style.justifyContent = "center";
+    locationEl.style.color = "#fff";
+    locationEl.style.fontSize = "12px";
+    locationEl.textContent = "You";
+
+    const marker = new mapboxgl.Marker({ element: locationEl, anchor: "center" })
+      .setLngLat([location.lng, location.lat])
+      .setPopup(
+        new mapboxgl.Popup({ offset: 25 }).setHTML(
+          `<div style="font-family: system-ui, sans-serif; font-size:14px;">Your current location</div>`,
+        ),
+      )
+      .addTo(map);
+
+    userLocationMarkerRef.current = marker;
+  }, []);
+
+  const requestCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported in this browser.");
+      setLocationStatus("error");
+      return;
+    }
+
+    setLocationStatus("requesting");
+    setLocationError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setUserLocation(coords);
+        setLocationStatus("success");
+        setLocationError("");
+
+        if (mapRef.current) {
+          mapRef.current.flyTo({
+            center: [coords.lng, coords.lat],
+            zoom: 13,
+            essential: true,
+          });
+          updateCurrentLocationMarker(coords);
+        }
+      },
+      (error) => {
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? "Location permission denied. You can still enter origin manually."
+            : "Unable to retrieve your location.";
+        setLocationError(message);
+        setLocationStatus("error");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      },
+    );
+  }, [updateCurrentLocationMarker]);
+
+  const useCurrentLocationAsOrigin = () => {
+    if (!userLocation) {
+      requestCurrentLocation();
+      return;
+    }
+
+    setOrigin(CURRENT_LOCATION_ORIGIN_LABEL);
+    setOriginName(CURRENT_LOCATION_ORIGIN_LABEL);
+    setOriginCoords(userLocation);
+    setIsOriginCurrentLocation(true);
+  };
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
@@ -131,10 +229,16 @@ function MapPage() {
 
   const originInput = renderLocationInput({
     value: origin,
-    onChange: (event) => setOrigin(event.target.value),
+    onChange: (event) => {
+      setOrigin(event.target.value);
+      if (isOriginCurrentLocation) {
+        setIsOriginCurrentLocation(false);
+      }
+    },
     placeholder: "Enter origin address",
     onClear: () => {
       setOrigin("");
+      setIsOriginCurrentLocation(false);
       // focus the input after clearing to allow for immediate typing
       setTimeout(() => {
         const input = document.getElementById("origin-input");
@@ -418,6 +522,8 @@ function MapPage() {
           filter: ["==", ["get", "routeId"], 0],
         });
       }
+
+      requestCurrentLocation();
     });
 
     mapRef.current = map;
@@ -433,8 +539,12 @@ function MapPage() {
         destinationMarkerRef.current.remove();
         destinationMarkerRef.current = null;
       }
+      if (userLocationMarkerRef.current) {
+        userLocationMarkerRef.current.remove();
+        userLocationMarkerRef.current = null;
+      }
     };
-  }, [mapboxToken]);
+  }, [mapboxToken, requestCurrentLocation]);
 
   function decodePolyline(encoded) {
     const coordinates = [];
@@ -693,8 +803,13 @@ function MapPage() {
         avoidOptions.push("indoor");
       }
 
+      const originParam =
+        isOriginCurrentLocation && userLocation
+          ? `${userLocation.lat},${userLocation.lng}`
+          : origin;
+
       const params = new URLSearchParams({
-        origin,
+        origin: originParam,
         destination,
         mode,
       });
@@ -804,6 +919,36 @@ function MapPage() {
               ) : null}
             </div>
 
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-700">
+                {locationStatus === "success" ? (
+                  <div className="space-y-1">
+                    <p className="font-semibold text-slate-900">
+                      Current location detected
+                    </p>
+                    <p>
+                      Latitude: {userLocation?.lat?.toFixed(4)}, Longitude: {userLocation?.lng?.toFixed(4)}
+                    </p>
+                  </div>
+                ) : locationStatus === "requesting" ? (
+                  <p>Finding your current location…</p>
+                ) : locationStatus === "error" ? (
+                  <p>{locationError || "Unable to detect current location."}</p>
+                ) : (
+                  <p>
+                    Allow location access to center the map on your current position.
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={requestCurrentLocation}
+                className="inline-flex h-12 items-center justify-center rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500"
+              >
+                Locate me
+              </button>
+            </div>
+
             <form onSubmit={handleSearch} className="space-y-6 mb-6">
               <div className="relative grid gap-4 pl-7">
                 <div className="absolute left-3 top-8 bottom-8 w-px border-l-4 border-dashed border-slate-300" />
@@ -817,6 +962,22 @@ function MapPage() {
                       Start
                     </p>
                     {originInput}
+                    {userLocation ? (
+                      <button
+                        type="button"
+                        onClick={useCurrentLocationAsOrigin}
+                        disabled={isOriginCurrentLocation}
+                        className={`mt-3 inline-flex h-11 items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                          isOriginCurrentLocation
+                            ? "border-slate-200 bg-slate-100 text-slate-500"
+                            : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+                        }`}
+                      >
+                        {isOriginCurrentLocation
+                          ? "Current location selected"
+                          : "Use current location"}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
 

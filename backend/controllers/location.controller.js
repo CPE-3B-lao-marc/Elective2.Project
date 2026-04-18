@@ -248,7 +248,7 @@ function buildTrafficImpact(leg, mode) {
   }
 
   if (mode !== "driving" && mode !== "transit") {
-    text = `Estimated travel time`;
+    text = `No traffic impact expected`;
     severity = "Normal";
   }
 
@@ -554,8 +554,7 @@ const DIRECTIONS_STATUS_MESSAGES = {
     "The application has sent too many requests. Please wait and try again later.",
   REQUEST_DENIED:
     "Google denied the request. Check that the API key is enabled for Directions.",
-  UNKNOWN_ERROR:
-    "Google encountered a server error. Please try again shortly.",
+  UNKNOWN_ERROR: "Google encountered a server error. Please try again shortly.",
 };
 
 function getDirectionsStatusMessage(
@@ -583,7 +582,11 @@ function getDirectionsStatusMessage(
     return "No route could be found for the selected travel mode and locations.";
   }
 
-  return DIRECTIONS_STATUS_MESSAGES[status] || errorMessage || "Unable to get directions from Google.";
+  return (
+    DIRECTIONS_STATUS_MESSAGES[status] ||
+    errorMessage ||
+    "Unable to get directions from Google."
+  );
 }
 
 export { saveLocation, deleteLocation, getLocations, getDirections };
