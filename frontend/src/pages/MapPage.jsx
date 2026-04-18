@@ -53,7 +53,6 @@ function MapPage() {
   const [error, setError] = useState("");
   const [warnings, setWarnings] = useState([]);
   const [availableTravelModes, setAvailableTravelModes] = useState([]);
-  const [routeInfo, setRouteInfo] = useState(null);
   const [savedLocations, setSavedLocations] = useState([]);
 
   const suggestedTravelModes = availableTravelModes.filter(
@@ -682,7 +681,6 @@ function MapPage() {
     setLoading(true);
     setError("");
     setWarnings([]);
-    setRouteInfo(null);
     setRoutes([]);
     setAvailableTravelModes([]);
 
@@ -761,7 +759,6 @@ function MapPage() {
 
       setRoutes(routeObjects);
       setSelectedRouteIndex(0);
-      setRouteInfo(routeObjects[0] || null);
     } catch (fetchError) {
       setError(fetchError.message || "Unable to load directions.");
     } finally {
@@ -772,7 +769,6 @@ function MapPage() {
   useEffect(() => {
     if (!routes.length) return;
     updateRouteOnMap(routes, selectedRouteIndex);
-    setRouteInfo(routes[selectedRouteIndex] || null);
   }, [routes, selectedRouteIndex, updateRouteOnMap]);
 
   if (!isLoaded) {
@@ -861,7 +857,6 @@ function MapPage() {
                       })}
                     </div>
                   </div>
-
                 </div>
               </fieldset>
 
@@ -1064,7 +1059,6 @@ function MapPage() {
                     setMode("driving");
                     setTransitModes([]);
                     setTransitRoutingPreference("");
-                    setRouteInfo(null);
                     setError("");
                     setWarnings([]);
                     setAvailableTravelModes([]);
@@ -1080,6 +1074,7 @@ function MapPage() {
                     type="button"
                     onClick={() => saveLocation("origin")}
                     disabled={savingLocation}
+                    title="Save origin location"
                     className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-400"
                   >
                     Save origin
@@ -1088,6 +1083,7 @@ function MapPage() {
                     type="button"
                     onClick={() => saveLocation("destination")}
                     disabled={savingLocation}
+                    title="Save destination location"
                     className="inline-flex items-center justify-center rounded-full bg-rose-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:bg-slate-400"
                   >
                     Save destination
@@ -1422,60 +1418,6 @@ function MapPage() {
                     </div>
                   </div>
                 </section>
-              </section>
-            ) : null}
-
-            {routeInfo ? (
-              <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Route summary
-                </h3>
-                <div className="mt-4 space-y-3 text-sm text-slate-700">
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Mode
-                    </p>
-                    <p className="mt-2 text-base font-semibold text-slate-900">
-                      {MODE_OPTIONS.find((option) => option.value === mode)
-                        ?.label || mode}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Traffic
-                    </p>
-                    <p className="mt-2 text-base font-semibold text-slate-900">
-                      {routeInfo?.trafficImpact?.icon || "🚦"}{" "}
-                      {routeInfo?.trafficImpact?.text || "Light traffic"}
-                    </p>
-                  </div>
-                  {routeInfo?.fareText ? (
-                    <div className="rounded-3xl bg-white p-4">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                        Fare
-                      </p>
-                      <p className="mt-2 text-base font-semibold text-slate-900">
-                        {routeInfo.fareText}
-                      </p>
-                    </div>
-                  ) : null}
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Distance
-                    </p>
-                    <p className="mt-2 text-base font-semibold text-slate-900">
-                      {routeInfo.distance}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Duration
-                    </p>
-                    <p className="mt-2 text-base font-semibold text-slate-900">
-                      {routeInfo.duration}
-                    </p>
-                  </div>
-                </div>
               </section>
             ) : null}
           </div>
