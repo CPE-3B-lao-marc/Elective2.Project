@@ -53,12 +53,9 @@ function MapPage() {
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [warnings, setWarnings] = useState([]);
-  const [availableTravelModes, setAvailableTravelModes] = useState([]);
+  const [, setAvailableTravelModes] = useState([]);
   const [savedLocations, setSavedLocations] = useState([]);
 
-  const suggestedTravelModes = availableTravelModes.filter(
-    (value) => value.toLowerCase() !== mode.toLowerCase(),
-  );
   const [loadingSavedLocations, setLoadingSavedLocations] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
   const [isSavedLocationsOpen, setIsSavedLocationsOpen] = useState(false);
