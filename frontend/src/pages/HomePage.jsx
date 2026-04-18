@@ -2,38 +2,39 @@ import { Link } from "react-router-dom";
 
 const features = [
   {
-    title: "Multi-mode routing",
+    title: "Multi-transport routing",
     description:
-      "Compare driving, transit, walking, and biking with one planner.",
+      "Compare driving, transit, walking, and biking routes with one planner.",
+  },
+  {
+    title: "Traffic and weather context",
+    description:
+      "Route recommendations combine live traffic and weather signals for safer choices.",
   },
   {
     title: "Saved locations",
     description:
-      "Keep favorite places ready for faster routing and repeat trips.",
+      "Sign in to keep favorite stops and reuse them across every commute.",
   },
   {
-    title: "Route previews",
-    description: "See distance, ETA, and transport options before you go.",
-  },
-  {
-    title: "Clear commute view",
+    title: "Route comparison",
     description:
-      "Mapbox visuals and clean route cards keep your commute simple.",
+      "See travel time, distance, and mode differences side by side.",
   },
 ];
 
 const highlights = [
   {
-    label: "Fast route estimates",
-    value: "Instant results",
+    label: "Live route estimates",
+    value: "Distance, ETA, and traffic",
   },
   {
-    label: "Favorites",
-    value: "Save common stops",
+    label: "Weather-aware planning",
+    value: "OpenWeather warnings built in",
   },
   {
-    label: "Mode switching",
-    value: "Drive, transit, walk, bike",
+    label: "Saved favorites",
+    value: "Reuse frequent trips",
   },
 ];
 
@@ -50,9 +51,9 @@ function HomePage() {
               Plan faster commutes with Google Maps and Mapbox.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-slate-700">
-              Smart Commute Planner brings together route preview,
-              multi-transport options, and saved locations in one polished
-              dashboard.
+              Smart Commute Planner brings together Google Maps traffic, Mapbox
+              visuals, and weather-aware route comparison in one polished
+              commute dashboard.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
