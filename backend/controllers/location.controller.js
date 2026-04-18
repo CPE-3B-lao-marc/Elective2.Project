@@ -337,9 +337,14 @@ function chooseRouteLabels(routeInfos) {
 // fetch directions from Google Maps API through the backend proxy
 const getDirections = async (req, res) => {
   try {
-    const { origin, destination, mode } = req.query;
-    const includeTransit = req.query.includeTransit === "true";
-    const includeBiking = req.query.includeBiking === "true";
+    const {
+      origin,
+      destination,
+      mode,
+      avoid,
+      transit_mode: transitMode,
+      transit_routing_preference: transitRoutingPreference,
+    } = req.query;
 
     if (!origin || !destination || !mode) {
       return res.status(400).json({
@@ -370,15 +375,103 @@ const getDirections = async (req, res) => {
       key: googleKey,
     });
 
+    const allowedAvoid = new Set(["tolls", "highways", "ferries", "indoor"]);
+    const avoidValues = (avoid || "")
+      .split("|")
+      .map((value) => value.trim())
+      .filter((value) => value && allowedAvoid.has(value));
+
+    const effectiveAvoid = avoidValues.filter(
+      (value) => value !== "indoor" || mode === "walking" || mode === "transit",
+    );
+
+    if (effectiveAvoid.length) {
+      params.set("avoid", effectiveAvoid.join("|"));
+    }
+
+    if (mode === "transit") {
+      const allowedTransitModes = new Set([
+        "bus",
+        "subway",
+        "train",
+        "tram",
+        "rail",
+      ]);
+      const transitModeValues = (transitMode || "")
+        .split("|")
+        .map((value) => value.trim())
+        .filter((value) => value && allowedTransitModes.has(value));
+
+      if (transitModeValues.length) {
+        params.set("transit_mode", transitModeValues.join("|"));
+      }
+
+      const allowedRoutingPreferences = new Set([
+        "less_walking",
+        "fewer_transfers",
+      ]);
+      if (
+        transitRoutingPreference &&
+        allowedRoutingPreferences.has(transitRoutingPreference)
+      ) {
+        params.set("transit_routing_preference", transitRoutingPreference);
+      }
+    }
+
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/directions/json?${params.toString()}`,
     );
     const data = await response.json();
+    const warnings = Array.isArray(data.warnings) ? data.warnings : [];
 
     if (data.status !== "OK" || !data.routes?.length) {
-      return res.status(502).json({
-        message: data.error_message || "Unable to get directions from Google.",
-        status: data.status,
+      const availableTravelModes = Array.isArray(data.available_travel_modes)
+        ? data.available_travel_modes
+        : [];
+      const normalizedModes = new Set(
+        availableTravelModes.map((value) => String(value).toLowerCase()),
+      );
+      const selectedModeAvailable = normalizedModes.has(mode?.toLowerCase());
+      const effectiveStatus =
+        data.status === "OK" && !data.routes?.length
+          ? "ZERO_RESULTS"
+          : data.status;
+      const baseMessage = getDirectionsStatusMessage(
+        effectiveStatus,
+        data.error_message,
+        selectedModeAvailable,
+        mode,
+        availableTravelModes,
+      );
+
+      let httpStatus = 502;
+      if (effectiveStatus === "INVALID_REQUEST") {
+        httpStatus = 400;
+      } else if (
+        effectiveStatus === "NOT_FOUND" ||
+        effectiveStatus === "ZERO_RESULTS"
+      ) {
+        httpStatus = 404;
+      } else if (
+        effectiveStatus === "MAX_WAYPOINTS_EXCEEDED" ||
+        effectiveStatus === "MAX_ROUTE_LENGTH_EXCEEDED"
+      ) {
+        httpStatus = 422;
+      } else if (
+        effectiveStatus === "OVER_QUERY_LIMIT" ||
+        effectiveStatus === "OVER_DAILY_LIMIT" ||
+        effectiveStatus === "REQUEST_DENIED" ||
+        effectiveStatus === "UNKNOWN_ERROR"
+      ) {
+        httpStatus = 502;
+      }
+
+      return res.status(httpStatus).json({
+        message: baseMessage,
+        status: effectiveStatus,
+        selected_mode_available: selectedModeAvailable,
+        available_travel_modes: availableTravelModes,
+        warnings,
         details: data,
       });
     }
@@ -413,11 +506,12 @@ const getDirections = async (req, res) => {
         trafficImpact,
         trafficScore: trafficImpact.score,
         costEffort: formatCostEffort(route, mode),
+        fare: route.fare,
+        fareText: route.fare?.text || null,
         color: ROUTE_COLORS[index % ROUTE_COLORS.length],
         coordinates,
         originLocation: leg.start_location,
         destinationLocation: leg.end_location,
-        fare: route.fare,
       };
     });
 
@@ -430,8 +524,10 @@ const getDirections = async (req, res) => {
     res.json({
       status: data.status,
       routes,
-      includeTransit,
-      includeBiking,
+      warnings,
+      available_travel_modes: Array.isArray(data.available_travel_modes)
+        ? data.available_travel_modes
+        : [],
     });
   } catch (error) {
     res.status(500).json({
@@ -440,5 +536,54 @@ const getDirections = async (req, res) => {
     });
   }
 };
+
+const DIRECTIONS_STATUS_MESSAGES = {
+  NOT_FOUND:
+    "The origin or destination could not be found. Please verify the addresses.",
+  ZERO_RESULTS:
+    "No route could be found for the selected travel mode and locations.",
+  MAX_WAYPOINTS_EXCEEDED:
+    "Too many waypoints were provided. Simplify the route and try again.",
+  MAX_ROUTE_LENGTH_EXCEEDED:
+    "The requested route is too long or complex and cannot be processed.",
+  INVALID_REQUEST:
+    "The request is invalid. Check your origin, destination, mode, and parameters.",
+  OVER_DAILY_LIMIT:
+    "The Google Maps API key is missing, invalid, or has exceeded its daily limit.",
+  OVER_QUERY_LIMIT:
+    "The application has sent too many requests. Please wait and try again later.",
+  REQUEST_DENIED:
+    "Google denied the request. Check that the API key is enabled for Directions.",
+  UNKNOWN_ERROR:
+    "Google encountered a server error. Please try again shortly.",
+};
+
+function getDirectionsStatusMessage(
+  status,
+  errorMessage,
+  selectedModeAvailable,
+  selectedMode,
+  availableTravelModes,
+) {
+  const normalizedSource = String(selectedMode || "").toLowerCase();
+  const targetMode = normalizedSource || "selected mode";
+  const suggestedModes = Array.isArray(availableTravelModes)
+    ? availableTravelModes
+    : [];
+
+  if (status === "ZERO_RESULTS") {
+    if (selectedModeAvailable) {
+      return `No route is available for ${targetMode} with the current settings. Try removing avoid restrictions, adjusting transit filters, or selecting a different mode.`;
+    }
+
+    if (suggestedModes.length) {
+      return `Your selected mode is unavailable. Suggested travel modes: ${suggestedModes.join(", ")}.`;
+    }
+
+    return "No route could be found for the selected travel mode and locations.";
+  }
+
+  return DIRECTIONS_STATUS_MESSAGES[status] || errorMessage || "Unable to get directions from Google.";
+}
 
 export { saveLocation, deleteLocation, getLocations, getDirections };

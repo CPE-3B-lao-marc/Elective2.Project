@@ -41,14 +41,24 @@ function MapPage() {
   const [destinationName, setDestinationName] = useState(undefined);
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [mode, setMode] = useState("driving");
-  const [includeTransit, setIncludeTransit] = useState(true);
-  const [includeBiking, setIncludeBiking] = useState(true);
+  const [transitModes, setTransitModes] = useState([]);
+  const [transitRoutingPreference, setTransitRoutingPreference] = useState("");
+  const [avoidTolls, setAvoidTolls] = useState(false);
+  const [avoidHighways, setAvoidHighways] = useState(false);
+  const [avoidFerries, setAvoidFerries] = useState(false);
+  const [avoidIndoor, setAvoidIndoor] = useState(false);
   const [routes, setRoutes] = useState([]);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [warnings, setWarnings] = useState([]);
+  const [availableTravelModes, setAvailableTravelModes] = useState([]);
   const [routeInfo, setRouteInfo] = useState(null);
   const [savedLocations, setSavedLocations] = useState([]);
+
+  const suggestedTravelModes = availableTravelModes.filter(
+    (value) => value.toLowerCase() !== mode.toLowerCase(),
+  );
   const [loadingSavedLocations, setLoadingSavedLocations] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -63,7 +73,7 @@ function MapPage() {
     libraries: ["places"],
   });
 
-  const PREVIEW_LOCATION_COUNT = 4;
+  const PREVIEW_LOCATION_COUNT = 2;
   const previewSavedLocations = savedLocations.slice(0, PREVIEW_LOCATION_COUNT);
 
   const sharedInputClass =
@@ -98,6 +108,7 @@ function MapPage() {
       {isLoaded ? (
         <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
           <input
+            id={`${label}-input`}
             type="text"
             value={value}
             onChange={onChange}
@@ -107,6 +118,7 @@ function MapPage() {
         </Autocomplete>
       ) : (
         <input
+          id={`${label}-input`}
           type="text"
           value={value}
           onChange={onChange}
@@ -122,7 +134,14 @@ function MapPage() {
     value: origin,
     onChange: (event) => setOrigin(event.target.value),
     placeholder: "Enter origin address",
-    onClear: () => setOrigin(""),
+    onClear: () => {
+      setOrigin("");
+      // focus the input after clearing to allow for immediate typing
+      setTimeout(() => {
+        const input = document.getElementById("origin-input");
+        if (input) input.focus();
+      }, 0);
+    },
     label: "origin",
     onLoad: handleOriginLoad,
     onPlaceChanged: handleOriginPlaceChanged,
@@ -132,7 +151,14 @@ function MapPage() {
     value: destination,
     onChange: (event) => setDestination(event.target.value),
     placeholder: "Enter destination address",
-    onClear: () => setDestination(""),
+    onClear: () => {
+      setDestination("");
+      // focus the input after clearing to allow for immediate typing
+      setTimeout(() => {
+        const input = document.getElementById("destination-input");
+        if (input) input.focus();
+      }, 0);
+    },
     label: "destination",
     onLoad: handleDestinationLoad,
     onPlaceChanged: handleDestinationPlaceChanged,
@@ -655,27 +681,69 @@ function MapPage() {
     event?.preventDefault();
     setLoading(true);
     setError("");
+    setWarnings([]);
     setRouteInfo(null);
     setRoutes([]);
+    setAvailableTravelModes([]);
 
     try {
+      const avoidOptions = [];
+      if (avoidTolls) avoidOptions.push("tolls");
+      if (avoidHighways) avoidOptions.push("highways");
+      if (avoidFerries) avoidOptions.push("ferries");
+      if (avoidIndoor && (mode === "walking" || mode === "transit")) {
+        avoidOptions.push("indoor");
+      }
+
       const params = new URLSearchParams({
         origin,
         destination,
         mode,
-        includeTransit: includeTransit ? "true" : "false",
-        includeBiking: includeBiking ? "true" : "false",
       });
+      if (avoidOptions.length) {
+        params.set("avoid", avoidOptions.join("|"));
+      }
+
+      if (mode === "transit") {
+        const transitOptions = transitModes.filter((value) =>
+          ["bus", "subway", "train", "tram", "rail"].includes(value),
+        );
+        if (transitOptions.length) {
+          params.set("transit_mode", transitOptions.join("|"));
+        }
+        if (transitRoutingPreference) {
+          params.set("transit_routing_preference", transitRoutingPreference);
+        }
+      }
+
       const response = await fetch(
         `/api/locations/directions?${params.toString()}`,
       );
       const data = await response.json();
+      const warningsFromResponse = Array.isArray(data.warnings)
+        ? data.warnings
+        : [];
+      const availableModes =
+        Array.isArray(data.available_travel_modes) &&
+        data.available_travel_modes.length
+          ? data.available_travel_modes
+          : [];
+
+      if (warningsFromResponse.length) {
+        setWarnings(warningsFromResponse);
+      }
 
       if (!response.ok) {
+        if (availableModes.length) {
+          setAvailableTravelModes(availableModes);
+        }
         throw new Error(data.message || "No route could be found.");
       }
 
       if (data.status !== "OK" || !data.routes?.length) {
+        if (availableModes.length) {
+          setAvailableTravelModes(availableModes);
+        }
         const message = data.error_message || "No route could be found.";
         throw new Error(message);
       }
@@ -794,46 +862,190 @@ function MapPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="flex cursor-pointer items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">
-                          Include Public Transit
-                        </p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          View transit weather impact preferences.
-                        </p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={includeTransit}
-                        onChange={(event) =>
-                          setIncludeTransit(event.target.checked)
-                        }
-                        className="h-5 w-5 accent-sky-500"
-                      />
-                    </label>
-                    <label className="flex cursor-pointer items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">
-                          Include Biking
-                        </p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          View bike weather impact preferences.
-                        </p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={includeBiking}
-                        onChange={(event) =>
-                          setIncludeBiking(event.target.checked)
-                        }
-                        className="h-5 w-5 accent-sky-500"
-                      />
-                    </label>
-                  </div>
                 </div>
               </fieldset>
+
+              <fieldset className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <legend className="mb-3 text-sm font-semibold text-slate-800">
+                  Avoid route features
+                </legend>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="flex cursor-pointer items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        Avoid tolls
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Prefer routes without toll roads or bridges.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={avoidTolls}
+                      onChange={(event) => setAvoidTolls(event.target.checked)}
+                      className="h-5 w-5 accent-sky-500"
+                    />
+                  </label>
+                  <label className="flex cursor-pointer items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        Avoid highways
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Prefer surface streets and local roads.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={avoidHighways}
+                      onChange={(event) =>
+                        setAvoidHighways(event.target.checked)
+                      }
+                      className="h-5 w-5 accent-sky-500"
+                    />
+                  </label>
+                  <label className="flex cursor-pointer items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        Avoid ferries
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Prefer routes without ferry crossings.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={avoidFerries}
+                      onChange={(event) =>
+                        setAvoidFerries(event.target.checked)
+                      }
+                      className="h-5 w-5 accent-sky-500"
+                    />
+                  </label>
+                  <label className="flex cursor-pointer items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        Avoid indoor
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Applies only for walking and transit routes.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={avoidIndoor}
+                      onChange={(event) => setAvoidIndoor(event.target.checked)}
+                      disabled={mode !== "walking" && mode !== "transit"}
+                      className="h-5 w-5 accent-sky-500"
+                    />
+                  </label>
+                </div>
+              </fieldset>
+
+              {mode === "transit" ? (
+                <fieldset className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                  <legend className="mb-3 text-sm font-semibold text-slate-800">
+                    Transit preferences
+                  </legend>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        Preferred transit modes
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Choose one or more transit modes to prefer on the route.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {[
+                          { value: "bus", label: "Bus" },
+                          { value: "subway", label: "Subway" },
+                          { value: "train", label: "Train" },
+                          { value: "tram", label: "Tram" },
+                          { value: "rail", label: "Rail" },
+                        ].map((option) => {
+                          const active = transitModes.includes(option.value);
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => {
+                                setTransitModes((current) =>
+                                  current.includes(option.value)
+                                    ? current.filter(
+                                        (value) => value !== option.value,
+                                      )
+                                    : [...current, option.value],
+                                );
+                              }}
+                              className={`rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                                active
+                                  ? "border-sky-600 bg-sky-600 text-white"
+                                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        Transit routing preference
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Bias the route toward less walking or fewer transfers.
+                      </p>
+                      <div className="mt-3 grid gap-2">
+                        {[
+                          {
+                            value: "",
+                            label: "Default",
+                            description:
+                              "Use Google's default transit recommendation.",
+                          },
+                          {
+                            value: "less_walking",
+                            label: "Less walking",
+                            description: "Prefer routes with limited walking.",
+                          },
+                          {
+                            value: "fewer_transfers",
+                            label: "Fewer transfers",
+                            description: "Prefer routes with fewer transfers.",
+                          },
+                        ].map((option) => (
+                          <label
+                            key={option.value || "default"}
+                            className="flex cursor-pointer items-start gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3"
+                          >
+                            <input
+                              type="radio"
+                              name="transitRoutingPreference"
+                              value={option.value}
+                              checked={
+                                transitRoutingPreference === option.value
+                              }
+                              onChange={() =>
+                                setTransitRoutingPreference(option.value)
+                              }
+                              className="mt-1 h-4 w-4 accent-sky-500"
+                            />
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {option.label}
+                              </p>
+                              <p className="mt-1 text-sm text-slate-500">
+                                {option.description}
+                              </p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </fieldset>
+              ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
@@ -850,10 +1062,12 @@ function MapPage() {
                     setOrigin(DEFAULT_ORIGIN);
                     setDestination(DEFAULT_DESTINATION);
                     setMode("driving");
-                    setIncludeTransit(true);
-                    setIncludeBiking(true);
+                    setTransitModes([]);
+                    setTransitRoutingPreference("");
                     setRouteInfo(null);
                     setError("");
+                    setWarnings([]);
+                    setAvailableTravelModes([]);
                   }}
                   className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
                 >
@@ -884,7 +1098,23 @@ function MapPage() {
 
             {error ? (
               <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {error}
+                <p>{error}</p>
+                {suggestedTravelModes.length ? (
+                  <p className="mt-2 text-sm text-rose-700">
+                    Suggested travel modes: {suggestedTravelModes.join(", ")}.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {warnings.length ? (
+              <div className="mt-4 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-semibold">Route warnings</p>
+                <ul className="mt-2 list-disc space-y-1 pl-4">
+                  {warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
               </div>
             ) : null}
 
@@ -1160,7 +1390,9 @@ function MapPage() {
                             Cost / Effort
                           </p>
                           <p className="mt-2 font-semibold text-slate-900">
-                            {route.costEffort || "Standard route"}
+                            {route.fareText ||
+                              route.costEffort ||
+                              "Standard route"}
                           </p>
                         </div>
                       </div>
@@ -1210,16 +1442,6 @@ function MapPage() {
                   </div>
                   <div className="rounded-3xl bg-white p-4">
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Weather modes
-                    </p>
-                    <p className="mt-2 text-base font-semibold text-slate-900">
-                      {includeTransit ? "Transit included" : "Transit excluded"}
-                      {" · "}
-                      {includeBiking ? "Biking included" : "Biking excluded"}
-                    </p>
-                  </div>
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                       Traffic
                     </p>
                     <p className="mt-2 text-base font-semibold text-slate-900">
@@ -1227,6 +1449,16 @@ function MapPage() {
                       {routeInfo?.trafficImpact?.text || "Light traffic"}
                     </p>
                   </div>
+                  {routeInfo?.fareText ? (
+                    <div className="rounded-3xl bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                        Fare
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-slate-900">
+                        {routeInfo.fareText}
+                      </p>
+                    </div>
+                  ) : null}
                   <div className="rounded-3xl bg-white p-4">
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                       Distance
