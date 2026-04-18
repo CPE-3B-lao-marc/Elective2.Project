@@ -3,7 +3,7 @@ import { FiChevronUp, FiMove, FiX } from "react-icons/fi";
 
 function BottomDrawer({ children }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [sheetHeight, setSheetHeight] = useState(90);
+  const [sheetHeight, setSheetHeight] = useState(70);
   const [sidebarWidth, setSidebarWidth] = useState(420);
   const dragState = useRef({ active: false, startY: 0, startHeight: 90 });
   const sidebarDragState = useRef({
