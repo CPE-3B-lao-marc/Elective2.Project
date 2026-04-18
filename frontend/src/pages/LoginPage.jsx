@@ -9,6 +9,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // Redirect to map page if already logged in
   useEffect(() => {
     if (user) {
       navigate("/map", { replace: true });

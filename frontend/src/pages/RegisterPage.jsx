@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { notifyError, notifySuccess } from "../utils/toast";
 import { useAuth } from "../context/useAuth";
 
 function RegisterPage() {
-  const { register, login, loading } = useAuth();
+  const { register, login, loading, user } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Redirect to map page if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/map", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
