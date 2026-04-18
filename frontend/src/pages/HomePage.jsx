@@ -1,25 +1,30 @@
 import { Link } from "react-router-dom";
+import { FiMap, FiCloudRain, FiBookmark, FiBarChart2, FiClock, FiWind, FiStar } from "react-icons/fi";
 
 const features = [
   {
     title: "Multi-transport routing",
     description:
       "Compare driving, transit, walking, and biking routes with one planner.",
+    icon: FiMap,
   },
   {
     title: "Traffic and weather context",
     description:
       "Route recommendations combine live traffic and weather signals for safer choices.",
+    icon: FiCloudRain,
   },
   {
     title: "Saved locations",
     description:
       "Sign in to keep favorite stops and reuse them across every commute.",
+    icon: FiBookmark,
   },
   {
     title: "Route comparison",
     description:
       "See travel time, distance, and mode differences side by side.",
+    icon: FiBarChart2,
   },
 ];
 
@@ -27,14 +32,17 @@ const highlights = [
   {
     label: "Live route estimates",
     value: "Distance, ETA, and traffic",
+    icon: FiClock,
   },
   {
     label: "Weather-aware planning",
     value: "OpenWeather warnings built in",
+    icon: FiWind,
   },
   {
     label: "Saved favorites",
     value: "Reuse frequent trips",
+    icon: FiStar,
   },
 ];
 
@@ -70,17 +78,23 @@ function HomePage() {
               </Link>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
-              {highlights.map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
-                >
-                  <p className="text-sm font-semibold text-slate-900">
-                    {item.label}
-                  </p>
-                  <p className="mt-2 text-sm text-slate-600">{item.value}</p>
-                </div>
-              ))}
+              {highlights.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.label}
+                    className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+                  >
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {item.label}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600">{item.value}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -139,19 +153,25 @@ function HomePage() {
               stops, and jump back into the map with a single click.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              {features.map((feature) => (
-                <div
-                  key={feature.title}
-                  className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
-                >
-                  <h3 className="text-base font-semibold text-slate-950">
-                    {feature.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {feature.description}
-                  </p>
-                </div>
-              ))}
+              {features.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div
+                    key={feature.title}
+                    className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                  >
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <h3 className="text-base font-semibold text-slate-950">
+                      {feature.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {feature.description}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
