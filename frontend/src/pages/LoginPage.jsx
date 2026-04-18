@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { notifyError, notifySuccess } from "../utils/toast";
 import { useAuth } from "../context/useAuth";
 
 function LoginPage() {
@@ -7,8 +8,8 @@ function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
+  // Redirect to map page if already logged in
   useEffect(() => {
     if (user) {
       navigate("/map", { replace: true });
@@ -17,13 +18,13 @@ function LoginPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setError("");
 
     try {
       await login({ email, password });
+      notifySuccess("Signed in successfully.");
       navigate("/map", { replace: true });
     } catch (loginError) {
-      setError(loginError.message);
+      notifyError(loginError.message);
     }
   };
 
@@ -69,12 +70,6 @@ function LoginPage() {
                 autoComplete=""
               />
             </label>
-
-            {error ? (
-              <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {error}
-              </div>
-            ) : null}
 
             <button
               type="submit"

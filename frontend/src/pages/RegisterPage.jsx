@@ -1,31 +1,38 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { notifyError, notifySuccess } from "../utils/toast";
 import { useAuth } from "../context/useAuth";
 
 function RegisterPage() {
-  const { register, login, loading } = useAuth();
+  const { register, login, loading, user } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+
+  // Redirect to map page if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/map", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      notifyError("Passwords do not match.");
       return;
     }
 
     try {
       await register({ username, email, password });
       await login({ email, password });
+      notifySuccess("Account created successfully.");
       navigate("/map"); // or another protected page
     } catch (registerError) {
-      setError(registerError.message);
+      notifyError(registerError.message);
     }
   };
 
@@ -100,12 +107,6 @@ function RegisterPage() {
                 autoComplete=""
               />
             </label>
-
-            {error ? (
-              <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {error}
-              </div>
-            ) : null}
 
             <button
               type="submit"
