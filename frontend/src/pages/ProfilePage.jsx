@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { notifyError, notifySuccess } from "../utils/toast";
 import { useAuth } from "../context/useAuth";
 
 function ProfilePage({ user }) {
@@ -8,28 +9,32 @@ function ProfilePage({ user }) {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const usernameValue = username ?? user?.username ?? "";
   const emailValue = email ?? user?.email ?? "";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setError("");
-    setSuccess("");
+
+    const showError = (message) => {
+      notifyError(message);
+    };
+
+    const showSuccess = (message) => {
+      notifySuccess(message);
+    };
 
     // validate email and username formats
     if (!usernameValue.trim()) {
-      setError("Username cannot be empty.");
+      showError("Username cannot be empty.");
       return;
     }
     if (!emailValue.trim()) {
-      setError("Email cannot be empty.");
+      showError("Email cannot be empty.");
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(emailValue)) {
-      setError("Please enter a valid email address.");
+      showError("Please enter a valid email address.");
       return;
     }
 
@@ -41,7 +46,7 @@ function ProfilePage({ user }) {
       !newPassword &&
       !confirmPassword
     ) {
-      setError("No changes to save.");
+      showError("No changes to save.");
       return;
     }
 
@@ -50,17 +55,17 @@ function ProfilePage({ user }) {
 
     if (updatingPassword) {
       if (!oldPassword || !newPassword || !confirmPassword) {
-        setError("To change your password, fill in all password fields.");
+        showError("To change your password, fill in all password fields.");
         return;
       }
 
       if (newPassword !== confirmPassword) {
-        setError("New password and confirmation must match.");
+        showError("New password and confirmation must match.");
         return;
       }
 
       if (oldPassword === newPassword) {
-        setError("Your new password must be different from the old password.");
+        showError("Your new password must be different from the old password.");
         return;
       }
     }
@@ -74,12 +79,12 @@ function ProfilePage({ user }) {
         confirmPassword: updatingPassword ? confirmPassword : undefined,
       });
 
-      setSuccess(data.message || "Profile updated successfully.");
+      showSuccess(data.message || "Profile updated successfully.");
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (submitError) {
-      setError(submitError.message);
+      notifyError(submitError.message);
     }
   };
 
@@ -102,18 +107,6 @@ function ProfilePage({ user }) {
           onSubmit={handleSubmit}
           className="grid gap-6 rounded-3xl bg-white p-10 shadow-sm"
         >
-          {error ? (
-            <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {error}
-            </div>
-          ) : null}
-
-          {success ? (
-            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              {success}
-            </div>
-          ) : null}
-
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
               Username

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { notifyError, notifySuccess } from "../utils/toast";
 import { useAuth } from "../context/useAuth";
 import { apiUrl } from "../context/authConfig";
 import mapboxgl from "mapbox-gl";
@@ -51,7 +52,6 @@ function MapPage() {
   const [routes, setRoutes] = useState([]);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [warnings, setWarnings] = useState([]);
   const [availableTravelModes, setAvailableTravelModes] = useState([]);
   const [savedLocations, setSavedLocations] = useState([]);
@@ -61,8 +61,6 @@ function MapPage() {
   );
   const [loadingSavedLocations, setLoadingSavedLocations] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
-  const [saveError, setSaveError] = useState("");
-  const [saveSuccess, setSaveSuccess] = useState("");
   const [isSavedLocationsOpen, setIsSavedLocationsOpen] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState("idle");
@@ -70,6 +68,18 @@ function MapPage() {
   const [isOriginCurrentLocation, setIsOriginCurrentLocation] = useState(false);
   const userLocationMarkerRef = useRef(null);
   const { user } = useAuth();
+
+  const showSaveError = (message) => {
+    notifyError(message);
+  };
+
+  const showSaveSuccess = (message) => {
+    notifySuccess(message);
+  };
+
+  const showError = (message) => {
+    notifyError(message);
+  };
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
 
@@ -96,7 +106,10 @@ function MapPage() {
     locationEl.style.fontSize = "12px";
     locationEl.textContent = "You";
 
-    const marker = new mapboxgl.Marker({ element: locationEl, anchor: "center" })
+    const marker = new mapboxgl.Marker({
+      element: locationEl,
+      anchor: "center",
+    })
       .setLngLat([location.lng, location.lat])
       .setPopup(
         new mapboxgl.Popup({ offset: 25 }).setHTML(
@@ -144,6 +157,7 @@ function MapPage() {
             : "Unable to retrieve your location.";
         setLocationError(message);
         setLocationStatus("error");
+        notifyError(message);
       },
       {
         enableHighAccuracy: true,
@@ -312,8 +326,6 @@ function MapPage() {
     }
 
     setLoadingSavedLocations(true);
-    setSaveError("");
-    setSaveSuccess("");
 
     try {
       const response = await fetch(`${apiUrl}/api/locations`, {
@@ -327,7 +339,7 @@ function MapPage() {
 
       setSavedLocations(data.locations || []);
     } catch (err) {
-      setSaveError(err.message || "Could not load saved locations.");
+      showSaveError(err.message || "Could not load saved locations.");
     } finally {
       setLoadingSavedLocations(false);
     }
@@ -339,13 +351,13 @@ function MapPage() {
 
   const saveLocation = async (type) => {
     if (!user) {
-      setSaveError("Please sign in to save locations.");
+      showSaveError("Please sign in to save locations.");
       return;
     }
 
     const selectedRoute = routes[selectedRouteIndex];
     if (!selectedRoute) {
-      setSaveError("Search a route first to save a location.");
+      showSaveError("Search a route first to save a location.");
       return;
     }
 
@@ -358,7 +370,7 @@ function MapPage() {
     const locationPoint = selectedPlaceCoords || routeCoords;
 
     if (!locationPoint?.lat || !locationPoint?.lng) {
-      setSaveError("Route coordinates are required to save this location.");
+      showSaveError("Route coordinates are required to save this location.");
       return;
     }
 
@@ -375,14 +387,12 @@ function MapPage() {
     });
 
     if (alreadySaved) {
-      setSaveError("This location is already saved.");
+      showSaveError("This location is already saved.");
       console.log("Location already saved:", { name, address, locationPoint });
       return;
     }
 
     setSavingLocation(true);
-    setSaveError("");
-    setSaveSuccess("");
 
     try {
       const response = await fetch(`${apiUrl}/api/locations`, {
@@ -402,10 +412,10 @@ function MapPage() {
         throw new Error(data.message || "Unable to save location.");
       }
 
-      setSaveSuccess("Location saved successfully.");
+      showSaveSuccess("Location saved successfully.");
       await loadSavedLocations();
     } catch (err) {
-      setSaveError(err.message || "Could not save location.");
+      showSaveError(err.message || "Could not save location.");
     } finally {
       setSavingLocation(false);
     }
@@ -413,9 +423,6 @@ function MapPage() {
 
   const deleteSavedLocation = async (id) => {
     if (!user) return;
-
-    setSaveError("");
-    setSaveSuccess("");
 
     try {
       const response = await fetch(`${apiUrl}/api/locations/${id}`, {
@@ -428,10 +435,10 @@ function MapPage() {
         throw new Error(data.message || "Unable to delete location.");
       }
 
-      setSaveSuccess("Location deleted successfully.");
+      showSaveSuccess("Location deleted successfully.");
       await loadSavedLocations();
     } catch (err) {
-      setSaveError(err.message || "Could not delete saved location.");
+      showSaveError(err.message || "Could not delete saved location.");
     }
   };
 
@@ -789,7 +796,6 @@ function MapPage() {
   async function handleSearch(event) {
     event?.preventDefault();
     setLoading(true);
-    setError("");
     setWarnings([]);
     setRoutes([]);
     setAvailableTravelModes([]);
@@ -875,7 +881,7 @@ function MapPage() {
       setRoutes(routeObjects);
       setSelectedRouteIndex(0);
     } catch (fetchError) {
-      setError(fetchError.message || "Unable to load directions.");
+      showError(fetchError.message || "Unable to load directions.");
     } finally {
       setLoading(false);
     }
@@ -927,7 +933,8 @@ function MapPage() {
                       Current location detected
                     </p>
                     <p>
-                      Latitude: {userLocation?.lat?.toFixed(4)}, Longitude: {userLocation?.lng?.toFixed(4)}
+                      Latitude: {userLocation?.lat?.toFixed(4)}, Longitude:{" "}
+                      {userLocation?.lng?.toFixed(4)}
                     </p>
                   </div>
                 ) : locationStatus === "requesting" ? (
@@ -936,7 +943,8 @@ function MapPage() {
                   <p>{locationError || "Unable to detect current location."}</p>
                 ) : (
                   <p>
-                    Allow location access to center the map on your current position.
+                    Allow location access to center the map on your current
+                    position.
                   </p>
                 )}
               </div>
@@ -1223,7 +1231,6 @@ function MapPage() {
                     setMode("driving");
                     setTransitModes([]);
                     setTransitRoutingPreference("");
-                    setError("");
                     setWarnings([]);
                     setAvailableTravelModes([]);
                   }}
@@ -1256,17 +1263,6 @@ function MapPage() {
               ) : null}
             </form>
 
-            {error ? (
-              <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                <p>{error}</p>
-                {suggestedTravelModes.length ? (
-                  <p className="mt-2 text-sm text-rose-700">
-                    Suggested travel modes: {suggestedTravelModes.join(", ")}.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
             {warnings.length ? (
               <div className="mt-4 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <p className="font-semibold">Route warnings</p>
@@ -1294,18 +1290,6 @@ function MapPage() {
                     <p className="text-xs text-slate-500">Loading…</p>
                   ) : null}
                 </div>
-
-                {saveError ? (
-                  <div className="mt-4 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                    {saveError}
-                  </div>
-                ) : null}
-
-                {saveSuccess ? (
-                  <div className="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                    {saveSuccess}
-                  </div>
-                ) : null}
 
                 {savedLocations.length ? (
                   <>
