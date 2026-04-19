@@ -5,24 +5,24 @@ import Footer from "../components/Footer";
 const team = [
   {
     name: "Arillano, John Loyd",
-    photo: "1.jpg",
+    photo: "/1.jpg",
     github: "https://github.com/CPE3B-ARILLANO-JOHNLLOYD",
   },
   {
     name: "Carlos, Jelo",
-    photo: "2.jpg",
+    photo: "/2.jpg",
     role: "",
     github: "https://github.com/carlosjelo081-arch",
   },
   {
     name: "Escandor, Christian Eric",
-    photo: "3.jpg",
+    photo: "/3.jpg",
     role: "",
     github: "https://github.com/CPE3B-escandor-christian",
   },
   {
     name: "Lao, Marc Adrian",
-    photo: "4.jpg",
+    photo: "/4.jpg",
     role: "",
     github: "https://github.com/CPE-3B-lao-marc",
   },
@@ -121,22 +121,22 @@ function AboutPage() {
               </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2">
               {team.map((member) => (
                 <article
                   key={member.name}
                   className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-500">
+                    <div className="flex h-20 w-20 md:h-38 md:w-38 items-center justify-center rounded-3xl bg-slate-100 text-slate-500">
                       <img
-                        src={`/team/${member.photo}`}
+                        src={`${member.photo}`}
                         alt={`${member.name} profile`}
                         className="h-full w-full rounded-3xl object-cover"
                       />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-base font-semibold text-slate-950">
+                      <p className="text-base md:text-2xl font-semibold text-slate-950 md:mt-7">
                         {member.name}
                       </p>
 
@@ -148,7 +148,7 @@ function AboutPage() {
                           className="inline-flex items-center gap-2 text-slate-700 transition hover:text-sky-600"
                           aria-label={`Visit ${member.name} GitHub profile`}
                         >
-                          <FiGithub className="h-4 w-4" aria-hidden="true" />
+                          <FiGithub className="h-6 w-6" aria-hidden="true" />
                           GitHub
                         </a>
                       </div>
