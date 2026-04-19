@@ -5,21 +5,24 @@ import Footer from "../components/Footer";
 const team = [
   {
     name: "Arillano, John Loyd",
-    role: "",
+    photo: "1.jpg",
     github: "https://github.com/CPE3B-ARILLANO-JOHNLLOYD",
   },
   {
     name: "Carlos, Jelo",
+    photo: "2.jpg",
     role: "",
     github: "https://github.com/carlosjelo081-arch",
   },
   {
     name: "Escandor, Christian Eric",
+    photo: "3.jpg",
     role: "",
     github: "https://github.com/CPE3B-escandor-christian",
   },
   {
     name: "Lao, Marc Adrian",
+    photo: "4.jpg",
     role: "",
     github: "https://github.com/CPE-3B-lao-marc",
   },
@@ -126,10 +129,11 @@ function AboutPage() {
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-500">
-                      <span className="text-xl font-semibold">
-                        {member.name.split(", ")[1].slice(0, 1)}
-                        {member.name.split(", ")[0].slice(0, 1)}
-                      </span>
+                      <img
+                        src={`/team/${member.photo}`}
+                        alt={`${member.name} profile`}
+                        className="h-full w-full rounded-3xl object-cover"
+                      />
                     </div>
                     <div className="space-y-2">
                       <p className="text-base font-semibold text-slate-950">
@@ -148,7 +152,6 @@ function AboutPage() {
                           GitHub
                         </a>
                       </div>
-                      {/* <p className="text-sm text-slate-500">{member.role}</p> */}
                     </div>
                   </div>
                 </article>
