@@ -77,6 +77,16 @@ function NavBar() {
                 <NavLink to="/about" className={navClass} onClick={closeMenu}>
                   About
                 </NavLink>
+                <NavLink
+                  to="/privacy-policy"
+                  className={navClass}
+                  onClick={closeMenu}
+                >
+                  Privacy Policy
+                </NavLink>
+                <NavLink to="/terms" className={navClass} onClick={closeMenu}>
+                  Terms & Conditions
+                </NavLink>
                 {user ? (
                   <>
                     <NavLink
