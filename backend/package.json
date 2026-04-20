@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/package",
+  "name": "smart-commute-planner",
+  "version": "1.0.0",
+  "description": "Smart route planning with traffic and weather",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
+    "ejs": "^5.0.1",
+    "express": "^5.1.0",
+    "express-flash": "^0.0.2",
+    "express-session": "^1.19.0",
+    "mongoose": "^9.4.1",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "path": "^0.12.7",
+    "url": "^0.11.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+.desktop-map-right {
+  right: 0;
+}
+
+@media (min-width: 768px) {
+  .desktop-map-right {
+    right: 420px;
+  }
+}
