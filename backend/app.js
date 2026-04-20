@@ -45,7 +45,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-const indexPath = path.join(__dirname, "/public");
+const indexPath = path.join(__dirname, "../frontend/dist");
 app.use(express.static(indexPath));
 
 // Routes import
