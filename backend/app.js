@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 
 // CORS configuration, update the origin to match your frontend URL and port after deployment,
 // actual domain will be used instead of localhost
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: false }));
