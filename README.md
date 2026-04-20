@@ -13,7 +13,7 @@ A modern commute planning web app with user authentication, saved locations, rou
 - Protected map dashboard and profile pages
 - Save and manage favorite commute locations
 - Compare multiple route options using Google Maps Directions
-- Weather-aware route impact warnings via OpenWeather
+- Weather-aware route warnings
 - Map rendering with Mapbox and Google Maps integration
 - Responsive, React-based UI with Tailwind CSS styling
 
@@ -57,9 +57,10 @@ A modern commute planning web app with user authentication, saved locations, rou
    - Create `frontend/.env`
    - Add the following keys:
 
-   - ```env
+     ```env
      VITE_MAPBOX_ACCESS_TOKEN=your_mapbox_api_key
      VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+     VITE_API_URL=http://localhost:4000
      ```
 
 3. Install dependencies:
@@ -93,6 +94,14 @@ A modern commute planning web app with user authentication, saved locations, rou
 - CORS is configured for `http://localhost:5173` in `backend/app.js`.
 - The frontend uses API requests to `/api/users` and `/api/locations` through the backend.
 - In production, update backend CORS origin and serve the built frontend assets appropriately.
+
+## Developer Documentation
+
+For detailed project references, see:
+
+- [`frontend/frontend-documentation.md`](frontend/frontend-documentation.md): Frontend architecture, page behavior, auth flow, Mapbox/Google Maps integration, and troubleshooting.
+- [`backend/backend-documentation.md`](backend/backend-documentation.md): Backend API, database models, authentication, route handling, and deployment notes.
+- [`documentation.md`](documentation.md): Top-level summary and quick navigation for both frontend and backend documentation.
 
 ## Recommended Commands
 
