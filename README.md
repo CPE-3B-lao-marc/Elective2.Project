@@ -33,6 +33,7 @@ A modern commute planning web app with user authentication, saved locations, rou
   - `VITE_MAPBOX_ACCESS_TOKEN`
 - `SESSION_SECRET` for Express session signing
 - `MONGODB_URI` for MongoDB connection
+- `FRONTEND_URL` for backend CORS to allow the frontend origin
 
 ## Setup Instructions
 
@@ -60,7 +61,7 @@ A modern commute planning web app with user authentication, saved locations, rou
      ```env
      VITE_MAPBOX_ACCESS_TOKEN=your_mapbox_api_key
      VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-     VITE_API_URL=http://localhost:4000
+     VITE_API_URL=http://localhost:8000
      ```
 
 3. Install dependencies:
@@ -91,9 +92,10 @@ A modern commute planning web app with user authentication, saved locations, rou
 ## Development Notes
 
 - The backend listens on `process.env.PORT` or `8000` by default.
-- CORS is configured for `http://localhost:5173` in `backend/app.js`.
+- CORS is configured using `process.env.FRONTEND_URL` in `backend/app.js`.
 - The frontend uses API requests to `/api/users` and `/api/locations` through the backend.
-- In production, update backend CORS origin and serve the built frontend assets appropriately.
+- The Vite dev proxy is set to `http://localhost:4000`; if the backend is running on `8000`, update `frontend/vite.config.js` or set `VITE_API_URL=http://localhost:8000`.
+- In production, set `FRONTEND_URL` to the deployed frontend URL and ensure the built frontend is served from `backend/public/dist`.
 
 ## Developer Documentation
 
