@@ -48,7 +48,7 @@ app.use(passport.session());
 // use it in production
 // const indexPath = path.join(__dirname, "./frontend/dist");
 
-const indexPath = path.join(__dirname, "../frontend/dist");
+const indexPath = path.join(__dirname, "./public/dist");
 
 app.use(express.static(indexPath));
 
