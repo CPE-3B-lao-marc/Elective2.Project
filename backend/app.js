@@ -45,7 +45,11 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+// use it in production
+// const indexPath = path.join(__dirname, "./frontend/dist");
+
 const indexPath = path.join(__dirname, "../frontend/dist");
+
 app.use(express.static(indexPath));
 
 // Routes import
