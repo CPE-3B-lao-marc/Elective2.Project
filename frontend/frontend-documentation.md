@@ -93,7 +93,9 @@ Key behavior:
 
 Important note:
 
-The configured proxy target is `http://localhost:4000`. If the backend runs on a different port, update this proxy target or set `VITE_API_URL`.
+The configured proxy target is `http://localhost:4000`. If your backend runs on a different port, update this proxy target or set `VITE_API_URL`.
+
+Important note: the backend default port is `8000`, so if you are running the backend locally without a custom `PORT`, change this proxy to `http://localhost:8000` or set `VITE_API_URL=http://localhost:8000`.
 
 ## Application Entry Points
 

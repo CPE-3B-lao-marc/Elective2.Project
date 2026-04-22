@@ -53,6 +53,7 @@ The backend depends on the following environment variables in `backend/.env`:
 - `SESSION_SECRET` - Secret string used by Express session middleware
 - `GOOGLE_MAPS_API_KEY` - Key used for Google Maps Directions API
 - `OPENWEATHER_API_KEY` - Key used for OpenWeather API
+- `FRONTEND_URL` - Frontend origin allowed by CORS for the web client
 - `NODE_ENV` - Optional, set to `production` for production cookie settings
 - `PORT` - Optional, server port defaults to `8000` if not provided
 
@@ -73,7 +74,7 @@ The backend listens on `process.env.PORT` or `8000` by default.
 - `index.js` is the application entry point. It loads environment variables, connects to MongoDB, and starts the Express server.
 - `app.js` configures Express middleware, Passport authentication, CORS, session handling, static asset serving, and route registration.
 - API routes are mounted at `/api/users` and `/api/locations`.
-- All non-API requests are served from `backend/public/index.html`.
+- All non-API requests are served from `backend/public/dist/index.html`.
 
 ## Core Files
 
@@ -92,12 +93,12 @@ Responsibilities:
 Responsibilities:
 
 - Initializes Express and middleware
-- Configures CORS for `http://localhost:5173` by default
+- Configures CORS using `process.env.FRONTEND_URL`
 - Parses JSON and URL-encoded payloads
 - Enables `express-flash` for flash messages
 - Configures sessions with cookie security settings based on `NODE_ENV`
 - Initializes Passport for session-based auth
-- Serves the `public/` directory as static content
+- Serves the `backend/public/dist` directory as static content
 - Registers route modules for users and locations
 - Responds with `index.html` for non-API routes
 
