@@ -16,7 +16,10 @@ function Footer() {
         <div className="grid gap-10 lg:grid-cols-[1.5fr_1fr_1fr]">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 text-sm uppercase tracking-[0.2em] text-sky-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" aria-hidden="true" />
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-sky-400"
+                aria-hidden="true"
+              />
               <span>SmartCommutePlanner</span>
             </div>
             <h2 className="max-w-xl text-2xl font-semibold text-white">
@@ -96,7 +99,11 @@ function Footer() {
         <div className="flex flex-col gap-4 border-t border-slate-800 pt-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p className="inline-flex items-center gap-2">
             <span>© 2026 SmartCommutePlanner</span>
-            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-slate-700" aria-hidden="true" />
+            <span
+              className="inline-flex h-1.5 w-1.5 rounded-full bg-slate-700"
+              aria-hidden="true"
+            />
+            <span>Developed by BSCpE 3C Students</span>
           </p>
           <div className="flex flex-wrap items-center gap-4 text-slate-400">
             <a
